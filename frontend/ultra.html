@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>02 Ultra - Level 5 AI System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --accent: #f43f5e;
+            --accent-glow: rgba(244, 63, 94, 0.4);
+        }
+        
+        .glass {
+            background: rgba(18, 18, 26, 0.9);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(244, 63, 94, 0.2);
+        }
+        
+        .glow-rose {
+            box-shadow: 0 0 30px var(--accent-glow);
+        }
+        
+        .pulse-rose {
+            animation: pulseRose 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulseRose {
+            0%, 100% { box-shadow: 0 0 10px rgba(244, 63, 94, 0.3); }
+            50% { box-shadow: 0 0 30px rgba(244, 63, 94, 0.6); }
+        }
+        
+        .neural-pulse {
+            animation: neuralPulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes neuralPulse {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.3); opacity: 1; }
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #f43f5e, #ec4899, #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .typing-cursor {
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen" style="background: var(--bg-primary);">
+    <div id="app" class="flex flex-col min-h-screen">
+        <!-- Header -->
+        <header class="glass px-6 py-4 flex items-center justify-between border-b border-rose-500/20">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-500 to-purple-600 flex items-center justify-center glow-rose pulse-rose">
+                    <span class="text-2xl font-bold">02</span>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold gradient-text">02 ULTRA</h1>
+                    <p class="text-xs text-gray-400">Level 5 Cognitive Autonomous AI</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div id="levelBadge" class="px-4 py-2 rounded-full bg-rose-500/20 text-rose-400 text-sm font-bold border border-rose-500/30">
+                    LEVEL 5
+                </div>
+                <div id="statusBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/20 text-green-400">
+                    <div class="w-2 h-2 rounded-full bg-green-400 animate-pulse"></div>
+                    <span class="text-xs">ONLINE</span>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="flex-1 flex overflow-hidden">
+            <!-- Left Panel - Control -->
+            <aside class="w-96 glass border-r border-rose-500/20 flex flex-col">
+                <!-- Tabs -->
+                <div class="flex border-b border-rose-500/20">
+                    <button onclick="switchMode('chat')" id="mode-chat" class="flex-1 py-3 text-sm font-medium border-b-2 border-rose-500 text-white">
+                        💬 Chat
+                    </button>
+                    <button onclick="switchMode('ultra')" id="mode-ultra" class="flex-1 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400">
+                        ⚡ Ultra
+                    </button>
+                    <button onclick="switchMode('agents')" id="mode-agents" class="flex-1 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400">
+                        🧠 Agents
+                    </button>
+                </div>
+                
+                <!-- Chat Mode -->
+                <div id="panel-chat" class="flex-1 flex flex-col">
+                    <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4">
+                        <div class="flex items-start gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-rose-500 to-purple-600 flex items-center justify-center">
+                                <span class="font-bold">02</span>
+                            </div>
+                            <div class="bg-gray-800/50 rounded-2xl rounded-tl-none px-4 py-3 max-w-sm">
+                                <p class="text-sm">Good day. I am <strong class="text-rose-400">02 Ultra</strong>, your Level 5 autonomous AI.</p>
+                                <p class="text-sm mt-2">I can think, plan, learn, evolve, and execute tasks autonomously.</p>
+                                <p class="text-sm mt-2 text-gray-400">What would you like me to do?</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-4 border-t border-rose-500/20">
+                        <div class="flex gap-3">
+                            <input id="chatInput" type="text" placeholder="Ask 02 Ultra..." 
+                                class="flex-1 bg-gray-800/50 border border-gray-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500"
+                                onkeypress="if(event.key==='Enter') sendMessage()">
+                            <button onclick="sendMessage()" class="px-6 py-3 bg-rose-600 hover:bg-rose-700 rounded-xl font-medium text-sm transition-colors">
+                                Send
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Ultra Mode -->
+                <div id="panel-ultra" class="flex-1 overflow-y-auto p-4 hidden space-y-4">
+                    <!-- Meta Intelligence -->
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-rose-400 mb-3">🧠 Meta-Intelligence</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Experiences</span>
+                                <span id="metaExperiences" class="text-white">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Learning Rate</span>
+                                <span id="metaLearningRate" class="text-white">0.50</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Success Rate</span>
+                                <span id="metaSuccessRate" class="text-white">0%</span>
+                            </div>
+                        </div>
+                        <button onclick="metaReflect()" class="mt-3 w-full py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors">
+                            🔮 Self-Reflect
+                        </button>
+                    </div>
+                    
+                    <!-- Goals -->
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-rose-400 mb-3">🎯 Goal Evolution</h3>
+                        <input id="goalInput" type="text" placeholder="Describe a goal..." 
+                            class="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:border-rose-500">
+                        <button onclick="createGoal()" class="w-full py-2 bg-rose-600 hover:bg-rose-700 rounded-lg text-sm transition-colors">
+                            Create Evolutionary Goal
+                        </button>
+                        <div id="goalsList" class="mt-3 space-y-2"></div>
+                    </div>
+                    
+                    <!-- World Model -->
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-rose-400 mb-3">🗺️ World Model</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Entities</span>
+                                <span id="worldEntities" class="text-white">0</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">Relationships</span>
+                                <span id="worldRelationships" class="text-white">0</span>
+                            </div>
+                        </div>
+                        <button onclick="addEntity()" class="mt-3 w-full py-2 bg-gray-800 hover:bg-gray-700 rounded-lg text-sm transition-colors">
+                            ➕ Add Entity
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Agents Mode -->
+                <div id="panel-agents" class="flex-1 overflow-y-auto p-4 hidden space-y-4">
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-rose-400 mb-3">🤖 Recursive Agents</h3>
+                        <input id="agentTask" type="text" placeholder="Task for agents..." 
+                            class="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:border-rose-500">
+                        <button onclick="spawnAgent()" class="w-full py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors">
+                            Spawn Agent
+                        </button>
+                        <div id="agentTree" class="mt-3 space-y-2"></div>
+                    </div>
+                    
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-rose-400 mb-3">🏗️ Project Builder</h3>
+                        <input id="projectDesc" type="text" placeholder="Describe project to build..." 
+                            class="w-full bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-sm mb-2 focus:outline-none focus:border-rose-500">
+                        <button onclick="buildProject()" class="w-full py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm transition-colors">
+                            🚀 Build Project
+                        </button>
+                    </div>
+                </div>
+            </aside>
+            
+            <!-- Main Panel - Visualization -->
+            <div class="flex-1 flex flex-col">
+                <!-- Neural Network Visualization -->
+                <div class="h-64 bg-gradient-to-b from-gray-900 to-gray-800 border-b border-rose-500/20 flex items-center justify-center relative overflow-hidden">
+                    <div id="neuralCanvas" class="absolute inset-0">
+                        <!-- Neural nodes will be rendered here -->
+                    </div>
+                    <div class="text-center z-10">
+                        <p class="text-4xl font-bold gradient-text mb-2">02 ULTRA</p>
+                        <p class="text-sm text-gray-400">Cognitive Autonomous AI System</p>
+                    </div>
+                </div>
+                
+                <!-- Processing Output -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <!-- Status Cards -->
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <div class="glass rounded-xl p-4">
+                            <p class="text-xs text-gray-400 mb-1">Processing Time</p>
+                            <p id="statProcessing" class="text-2xl font-bold text-rose-400">--ms</p>
+                        </div>
+                        <div class="glass rounded-xl p-4">
+                            <p class="text-xs text-gray-400 mb-1">Active Goals</p>
+                            <p id="statGoals" class="text-2xl font-bold text-purple-400">0</p>
+                        </div>
+                        <div class="glass rounded-xl p-4">
+                            <p class="text-xs text-gray-400 mb-1">Agents</p>
+                            <p id="statAgents" class="text-2xl font-bold text-blue-400">0</p>
+                        </div>
+                        <div class="glass rounded-xl p-4">
+                            <p class="text-xs text-gray-400 mb-1">Learning</p>
+                            <p id="statLearning" class="text-2xl font-bold text-green-400">0%</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Thought Visualization -->
+                    <div class="glass rounded-xl p-6 mb-6">
+                        <h3 class="text-sm font-semibold text-rose-400 mb-4">🧠 Current Thought Process</h3>
+                        <div id="thoughtChain" class="space-y-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-3 h-3 rounded-full bg-rose-500 neural-pulse"></div>
+                                <p class="text-sm text-gray-400">Awaiting input...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Result Output -->
+                    <div class="glass rounded-xl p-6">
+                        <h3 class="text-sm font-semibold text-rose-400 mb-4">📊 Execution Result</h3>
+                        <pre id="resultOutput" class="text-sm text-gray-300 whitespace-pre-wrap font-mono bg-black/30 rounded-lg p-4 max-h-64 overflow-y-auto">
+No results yet. Send a message to see the output.
+                        </pre>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel - Live Metrics -->
+            <aside class="w-80 glass border-l border-rose-500/20 flex flex-col">
+                <div class="p-4 border-b border-rose-500/20">
+                    <h2 class="text-sm font-semibold text-rose-400">📈 Live Metrics</h2>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                    <!-- System Chart -->
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-xs text-gray-400 mb-3">Performance</h3>
+                        <canvas id="performanceChart" height="120"></canvas>
+                    </div>
+                    
+                    <!-- Learning Progress -->
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-xs text-gray-400 mb-3">Learning Progress</h3>
+                        <canvas id="learningChart" height="120"></canvas>
+                    </div>
+                    
+                    <!-- Insights -->
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-xs text-gray-400 mb-3">💡 Insights</h3>
+                        <div id="insightsList" class="space-y-2 text-xs">
+                            <p class="text-gray-500">Processing experiences...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Recommendations -->
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-xs text-gray-400 mb-3">🎯 Recommendations</h3>
+                        <div id="recommendationsList" class="space-y-2 text-xs">
+                            <p class="text-gray-500">Generating recommendations...</p>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+        
+        <!-- Status Bar -->
+        <footer class="glass px-6 py-2 flex items-center justify-between text-xs text-gray-400 border-t border-rose-500/20">
+            <div class="flex items-center gap-4">
+                <span class="text-rose-400 font-bold">02 ULTRA v1.0</span>
+                <span>|</span>
+                <span>Level 5 AI</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="uptime">Uptime: 0:00</span>
+                <span>|</span>
+                <span id="timestamp"></span>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        const API_URL = 'http://localhost:5000';
+        let startTime = Date.now();
+        let currentMode = 'chat';
+        let performanceChart, learningChart;
+        let neuralNodes = [];
+        
+        // ═══════════════════════════════════════════════════════════════════════════
+        // INITIALIZATION
+        // ═══════════════════════════════════════════════════════════════════════════
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initNeuralCanvas();
+            initCharts();
+            updateStatus();
+            updateTime();
+            setInterval(updateStatus, 3000);
+            setInterval(updateTime, 1000);
+        });
+        
+        function initNeuralCanvas() {
+            const canvas = document.getElementById('neuralCanvas');
+            for (let i = 0; i < 30; i++) {
+                const node = document.createElement('div');
+                node.className = 'absolute w-2 h-2 rounded-full bg-rose-500 neural-pulse';
+                node.style.left = `${Math.random() * 100}%`;
+                node.style.top = `${Math.random() * 100}%`;
+                node.style.animationDelay = `${Math.random() * 2}s`;
+                canvas.appendChild(node);
+                neuralNodes.push(node);
+            }
+        }
+        
+        function initCharts() {
+            const perfCtx = document.getElementById('performanceChart').getContext('2d');
+            performanceChart = new Chart(perfCtx, {
+                type: 'line',
+                data: {
+                    labels: ['0s', '10s', '20s', '30s', '40s', '50s'],
+                    datasets: [{
+                        label: 'CPU',
+                        data: [20, 40, 30, 50, 35, 45],
+                        borderColor: '#f43f5e',
+                        backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    }
+                }
+            });
+            
+            const learnCtx = document.getElementById('learningChart').getContext('2d');
+            learningChart = new Chart(learnCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Success', 'Failure'],
+                    datasets: [{
+                        data: [75, 25],
+                        backgroundColor: ['#10b981', '#ef4444']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CHAT
+        // ═══════════════════════════════════════════════════════════════════════════
+        
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            input.value = '';
+            addChatMessage('user', message);
+            
+            showThinking(true);
+            
+            try {
+                const response = await fetch(`${API_URL}/process`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const result = data.data;
+                    showThinking(false);
+                    
+                    // Show thought process
+                    updateThoughtChain(result.thought);
+                    
+                    // Show result
+                    document.getElementById('resultOutput').textContent = JSON.stringify(result, null, 2);
+                    
+                    // Update stats
+                    document.getElementById('statProcessing').textContent = `${Math.round(result.processing_time * 1000)}ms`;
+                    
+                    // Add response
+                    const responseText = result.result?.response || result.action || 'Processed successfully';
+                    addChatMessage('assistant', responseText);
+                    
+                    // Update metrics
+                    updateMetrics(result);
+                } else {
+                    showThinking(false);
+                    addChatMessage('assistant', 'Error: ' + data.error);
+                }
+            } catch (error) {
+                showThinking(false);
+                addChatMessage('assistant', 'Connection error. Is the server running?');
+            }
+        }
+        
+        function addChatMessage(role, content) {
+            const container = document.getElementById('chatMessages');
+            const isUser = role === 'user';
+            
+            const div = document.createElement('div');
+            div.className = `flex items-start gap-3 ${isUser ? 'flex-row-reverse' : ''}`;
+            
+            div.innerHTML = `
+                <div class="w-10 h-10 rounded-lg ${isUser ? 'bg-blue-600' : 'bg-gradient-to-br from-rose-500 to-purple-600'} flex items-center justify-center">
+                    <span class="font-bold">${isUser ? 'U' : '02'}</span>
+                </div>
+                <div class="${isUser ? 'bg-blue-600' : 'bg-gray-800/50'} rounded-2xl ${isUser ? 'rounded-tr-none' : 'rounded-tl-none'} px-4 py-3 max-w-sm">
+                    <p class="text-sm whitespace-pre-wrap">${escapeHtml(content)}</p>
+                </div>
+            `;
+            
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function showThinking(show) {
+            const chain = document.getElementById('thoughtChain');
+            if (show) {
+                chain.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 rounded-full bg-rose-500 animate-pulse"></div>
+                        <p class="text-sm text-rose-400">Processing through cognitive systems...</p>
+                    </div>
+                    <div class="flex items-center gap-3 ml-6">
+                        <div class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></div>
+                        <p class="text-sm text-purple-400">Meta-intelligence analyzing...</p>
+                    </div>
+                    <div class="flex items-center gap-3 ml-6">
+                        <div class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></div>
+                        <p class="text-sm text-blue-400">Generating response...</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function updateThoughtChain(thought) {
+            if (!thought) return;
+            
+            document.getElementById('thoughtChain').innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    <p class="text-sm text-green-400">Confidence: ${(thought.confidence * 100).toFixed(0)}%</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full bg-rose-500"></div>
+                    <p class="text-sm text-gray-300">${thought.reasoning || 'Reasoning complete'}</p>
+                </div>
+            `;
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════════════
+        // ULTRA FEATURES
+        // ═══════════════════════════════════════════════════════════════════════════
+        
+        async function metaReflect() {
+            try {
+                const response = await fetch(`${API_URL}/meta/reflect`);
+                const data = await response.json();
+                if (data.success) {
+                    const insights = data.data.insights || [];
+                    document.getElementById('insightsList').innerHTML = insights.map(i => 
+                        `<p class="text-gray-300">${i}</p>`
+                    ).join('');
+                }
+            } catch (error) {
+                console.error('Reflection error:', error);
+            }
+        }
+        
+        async function createGoal() {
+            const input = document.getElementById('goalInput');
+            const description = input.value.trim();
+            if (!description) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/goals/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    input.value = '';
+                    updateGoals(data.data);
+                    updateStatus();
+                }
+            } catch (error) {
+                console.error('Goal error:', error);
+            }
+        }
+        
+        function updateGoals(goal) {
+            const container = document.getElementById('goalsList');
+            const div = document.createElement('div');
+            div.className = 'bg-gray-800/50 rounded-lg p-3';
+            div.innerHTML = `
+                <p class="text-sm font-medium">${goal.description.substring(0, 50)}...</p>
+                <p class="text-xs text-gray-400 mt-1">${goal.sub_goals?.length || 0} sub-goals</p>
+                <div class="mt-2 h-1 bg-gray-700 rounded-full overflow-hidden">
+                    <div class="h-full bg-rose-500" style="width: 0%"></div>
+                </div>
+            `;
+            container.insertBefore(div, container.firstChild);
+        }
+        
+        async function addEntity() {
+            const name = prompt('Entity name:');
+            if (!name) return;
+            
+            const type = prompt('Entity type (USER, PROJECT, FILE, CONCEPT):') || 'CONCEPT';
+            
+            try {
+                await fetch(`${API_URL}/world/entity/add`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, type })
+                });
+                updateStatus();
+            } catch (error) {
+                console.error('Entity error:', error);
+            }
+        }
+        
+        async function spawnAgent() {
+            const task = document.getElementById('agentTask').value.trim();
+            if (!task) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/agents/spawn`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: 'Agent', task, type: 'planner' })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    updateAgents();
+                }
+            } catch (error) {
+                console.error('Agent error:', error);
+            }
+        }
+        
+        function updateAgents() {
+            fetch(`${API_URL}/agents/tree`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const agents = data.data.agents || [];
+                        document.getElementById('agentTree').innerHTML = agents.map(a => `
+                            <div class="flex items-center gap-2 bg-gray-800/50 rounded-lg p-2">
+                                <div class="w-2 h-2 rounded-full ${a.state === 'executing' ? 'bg-green-500' : 'bg-gray-500'}"></div>
+                                <span class="text-sm">${a.name}</span>
+                                <span class="text-xs text-gray-500 ml-auto">${a.state}</span>
+                            </div>
+                        `).join('');
+                        document.getElementById('statAgents').textContent = agents.length;
+                    }
+                })
+                .catch(console.error);
+        }
+        
+        async function buildProject() {
+            const desc = document.getElementById('projectDesc').value.trim();
+            if (!desc) return;
+            
+            document.getElementById('resultOutput').textContent = 'Building project autonomously...';
+            
+            try {
+                const response = await fetch(`${API_URL}/project/build`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ description: desc })
+                });
+                
+                const data = await response.json();
+                document.getElementById('resultOutput').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('resultOutput').textContent = 'Error: ' + error.message;
+            }
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════════════
+        // STATUS & UPDATES
+        // ═══════════════════════════════════════════════════════════════════════════
+        
+        async function updateStatus() {
+            try {
+                const response = await fetch(`${API_URL}/status`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const status = data.data;
+                    
+                    // Meta intelligence
+                    const meta = status.meta_intelligence || {};
+                    document.getElementById('metaExperiences').textContent = meta.experiences || 0;
+                    document.getElementById('metaLearningRate').textContent = (meta.self_model?.learning_rate || 0.5).toFixed(2);
+                    
+                    // World model
+                    const world = status.world_model || {};
+                    document.getElementById('worldEntities').textContent = world.total_entities || 0;
+                    document.getElementById('worldRelationships').textContent = world.total_relationships || 0;
+                    
+                    // Goals
+                    const goals = status.goals || {};
+                    document.getElementById('statGoals').textContent = goals.active || 0;
+                    
+                    // Learning
+                    const learning = status.learning || {};
+                    const successRate = (learning.success_rate || 0) * 100;
+                    document.getElementById('statLearning').textContent = `${successRate.toFixed(0)}%`;
+                    document.getElementById('metaSuccessRate').textContent = `${successRate.toFixed(0)}%`;
+                    
+                    // Recommendations
+                    const recs = status.recommendations || {};
+                    if (recs.meta || recs.learning) {
+                        document.getElementById('recommendationsList').innerHTML = `
+                            <p class="text-gray-300">${recs.meta || recs.learning || ''}</p>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Status error:', error);
+            }
+        }
+        
+        function updateMetrics(result) {
+            // Update learning chart
+            if (result.reflection) {
+                const perf = result.reflection.performance || {};
+                const successRate = (perf.success_rate || 0.5) * 100;
+                learningChart.data.datasets[0].data = [successRate, 100 - successRate];
+                learningChart.update();
+            }
+        }
+        
+        function updateTime() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('uptime').textContent = `Uptime: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('timestamp').textContent = new Date().toLocaleTimeString();
+        }
+        
+        function switchMode(mode) {
+            currentMode = mode;
+            ['chat', 'ultra', 'agents'].forEach(m => {
+                document.getElementById(`mode-${m}`).classList.toggle('border-rose-500', m === mode);
+                document.getElementById(`mode-${m}`).classList.toggle('border-transparent', m !== mode);
+                document.getElementById(`mode-${m}`).classList.toggle('text-white', m === mode);
+                document.getElementById(`mode-${m}`).classList.toggle('text-gray-400', m !== mode);
+                document.getElementById(`panel-${m}`).classList.toggle('hidden', m !== mode);
+            });
+            
+            if (mode === 'ultra') metaReflect();
+            if (mode === 'agents') updateAgents();
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
