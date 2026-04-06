@@ -1,0 +1,1185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>02 v1 - Cognitive AI Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-tertiary: #1a1a25;
+            --border: #2a2a3a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
+        .glass {
+            background: rgba(18, 18, 26, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border);
+        }
+        
+        .glow {
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+        
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .thinking-bar {
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), #8b5cf6, #ec4899);
+            background-size: 200% 100%;
+            animation: gradient 2s ease infinite;
+        }
+        
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .neural-node {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: node-pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes node-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.7; }
+        }
+        
+        .chat-message {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .memory-node {
+            transition: all 0.3s ease;
+        }
+        
+        .memory-node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+        
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="app" class="flex flex-col h-screen">
+        <!-- Header -->
+        <header class="glass px-6 py-4 flex items-center justify-between border-b border-[#2a2a3a]">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center glow">
+                        <span class="text-xl font-bold">02</span>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-semibold">02 v1</h1>
+                        <p class="text-xs text-gray-400">Cognitive AI Ecosystem</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <!-- System Status -->
+                <div id="statusIndicator" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/20 text-green-400">
+                    <div class="w-2 h-2 rounded-full bg-green-400 pulse"></div>
+                    <span class="text-xs font-medium">Online</span>
+                </div>
+                
+                <!-- Voice Toggle -->
+                <button id="voiceToggle" onclick="toggleVoice()" class="p-2 rounded-lg bg-[#1a1a25] hover:bg-[#2a2a3a] transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
+                    </svg>
+                </button>
+                
+                <!-- Settings -->
+                <button onclick="openSettings()" class="p-2 rounded-lg bg-[#1a1a25] hover:bg-[#2a2a3a] transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Thinking Progress Bar -->
+        <div id="thinkingBar" class="thinking-bar hidden"></div>
+        
+        <main class="flex-1 flex overflow-hidden">
+            <!-- Sidebar - Memory Graph -->
+            <aside class="w-80 glass border-r border-[#2a2a3a] flex flex-col">
+                <div class="p-4 border-b border-[#2a2a3a]">
+                    <h2 class="text-sm font-semibold flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                        Memory Graph
+                    </h2>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-4 scrollbar-thin">
+                    <div id="memoryNodes" class="space-y-3">
+                        <!-- Memory nodes will be rendered here -->
+                    </div>
+                </div>
+                
+                <div class="p-4 border-t border-[#2a2a3a]">
+                    <div class="text-xs text-gray-400">
+                        <div class="flex justify-between mb-1">
+                            <span>Memories</span>
+                            <span id="memoryCount">0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Connections</span>
+                            <span id="connectionCount">0</span>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+            
+            <!-- Main Content -->
+            <div class="flex-1 flex flex-col">
+                <!-- Tabs -->
+                <div class="flex border-b border-[#2a2a3a]">
+                    <button onclick="switchTab('chat')" id="tab-chat" class="px-6 py-3 text-sm font-medium border-b-2 border-indigo-500 text-white">
+                        💬 Chat
+                    </button>
+                    <button onclick="switchTab('dashboard')" id="tab-dashboard" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-white">
+                        📊 Dashboard
+                    </button>
+                    <button onclick="switchTab('code')" id="tab-code" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-white">
+                        💻 Code
+                    </button>
+                    <button onclick="switchTab('memory')" id="tab-memory" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-white">
+                        🧬 Knowledge
+                    </button>
+                    <button onclick="switchTab('emotion')" id="tab-emotion" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-white">
+                        🎭 Emotion
+                    </button>
+                    <button onclick="switchTab('twin')" id="tab-twin" class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-400 hover:text-white">
+                        🧬 Twin
+                    </button>
+                </div>
+                
+                <!-- Chat Tab -->
+                <div id="panel-chat" class="flex-1 flex flex-col overflow-hidden">
+                    <!-- Messages -->
+                    <div id="chatMessages" class="flex-1 overflow-y-auto p-6 space-y-4">
+                        <!-- Welcome message -->
+                        <div class="flex items-start gap-3 chat-message">
+                            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                <span class="text-sm font-bold">02</span>
+                            </div>
+                            <div class="bg-[#1a1a25] rounded-2xl rounded-tl-none px-4 py-3 max-w-xl">
+                                <p class="text-sm">Good day, sir. I am <strong>02</strong>, your cognitive AI assistant.</p>
+                                <p class="text-sm mt-2">I can help you with:</p>
+                                <ul class="text-sm mt-1 space-y-1 text-gray-300">
+                                    <li>• Coding and development</li>
+                                    <li>• Data analysis and insights</li>
+                                    <li>• Task automation</li>
+                                    <li>• Knowledge management</li>
+                                </ul>
+                                <p class="text-sm mt-2">How may I assist you today?</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Input -->
+                    <div class="p-4 border-t border-[#2a2a3a]">
+                        <div class="flex gap-3">
+                            <input id="chatInput" type="text" placeholder="Type your message..." 
+                                class="flex-1 bg-[#1a1a25] border border-[#2a2a3a] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 transition-colors"
+                                onkeypress="if(event.key==='Enter') sendMessage()">
+                            <button onclick="sendMessage()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-medium text-sm transition-colors">
+                                Send
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dashboard Tab -->
+                <div id="panel-dashboard" class="flex-1 overflow-y-auto p-6 hidden">
+                    <div class="grid grid-cols-4 gap-4 mb-6">
+                        <!-- Stats Cards -->
+                        <div class="glass rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-gray-400 text-xs">Requests</span>
+                                <span class="text-green-400">↑</span>
+                            </div>
+                            <div id="statRequests" class="text-2xl font-bold">0</div>
+                        </div>
+                        <div class="glass rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-gray-400 text-xs">Memories</span>
+                                <span class="text-blue-400">🧠</span>
+                            </div>
+                            <div id="statMemories" class="text-2xl font-bold">0</div>
+                        </div>
+                        <div class="glass rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-gray-400 text-xs">Active Goals</span>
+                                <span class="text-yellow-400">🎯</span>
+                            </div>
+                            <div id="statGoals" class="text-2xl font-bold">0</div>
+                        </div>
+                        <div class="glass rounded-xl p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-gray-400 text-xs">Success Rate</span>
+                                <span class="text-purple-400">⚡</span>
+                            </div>
+                            <div id="statSuccess" class="text-2xl font-bold">100%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-6">
+                        <!-- Activity Chart -->
+                        <div class="glass rounded-xl p-4">
+                            <h3 class="text-sm font-semibold mb-4">Activity</h3>
+                            <canvas id="activityChart" height="200"></canvas>
+                        </div>
+                        
+                        <!-- Memory Distribution -->
+                        <div class="glass rounded-xl p-4">
+                            <h3 class="text-sm font-semibold mb-4">Memory Distribution</h3>
+                            <canvas id="memoryChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Code Tab -->
+                <div id="panel-code" class="flex-1 overflow-y-auto p-6 hidden">
+                    <div class="max-w-3xl mx-auto">
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">Code Assistant</h3>
+                            
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm text-gray-400 mb-2">What would you like to code?</label>
+                                    <input id="codeTask" type="text" placeholder="e.g., Write a Python function to sort a list"
+                                        class="w-full bg-[#1a1a25] border border-[#2a2a3a] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500">
+                                </div>
+                                
+                                <div class="flex gap-3">
+                                    <select id="codeLanguage" class="bg-[#1a1a25] border border-[#2a2a3a] rounded-xl px-4 py-2 text-sm">
+                                        <option value="">Auto-detect</option>
+                                        <option value="python">Python</option>
+                                        <option value="javascript">JavaScript</option>
+                                        <option value="typescript">TypeScript</option>
+                                        <option value="java">Java</option>
+                                        <option value="go">Go</option>
+                                        <option value="rust">Rust</option>
+                                    </select>
+                                    
+                                    <button onclick="generateCode()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-medium text-sm transition-colors">
+                                        Generate Code
+                                    </button>
+                                </div>
+                                
+                                <div id="codeOutput" class="hidden">
+                                    <label class="block text-sm text-gray-400 mb-2">Generated Code:</label>
+                                    <pre id="codeResult" class="bg-[#0a0a0f] rounded-xl p-4 text-sm font-mono overflow-x-auto"></pre>
+                                    <div class="flex gap-3 mt-3">
+                                        <button onclick="copyCode()" class="px-4 py-2 bg-[#2a2a3a] hover:bg-[#3a3a4a] rounded-lg text-sm transition-colors">
+                                            Copy Code
+                                        </button>
+                                        <button onclick="explainCode()" class="px-4 py-2 bg-[#2a2a3a] hover:bg-[#3a3a4a] rounded-lg text-sm transition-colors">
+                                            Explain
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Knowledge Tab -->
+                <div id="panel-memory" class="flex-1 overflow-y-auto p-6 hidden">
+                    <div class="max-w-3xl mx-auto space-y-6">
+                        <!-- Store Memory -->
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">Store Knowledge</h3>
+                            <div class="flex gap-3">
+                                <input id="storeInput" type="text" placeholder="Remember that..."
+                                    class="flex-1 bg-[#1a1a25] border border-[#2a2a3a] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500">
+                                <select id="memoryType" class="bg-[#1a1a25] border border-[#2a2a3a] rounded-xl px-4 py-2 text-sm">
+                                    <option value="episodic">Episodic</option>
+                                    <option value="semantic">Semantic</option>
+                                    <option value="procedural">Procedural</option>
+                                </select>
+                                <button onclick="storeMemory()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-medium text-sm transition-colors">
+                                    Store
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Recall -->
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">Recall Knowledge</h3>
+                            <div class="flex gap-3">
+                                <input id="recallInput" type="text" placeholder="What do you remember about..."
+                                    class="flex-1 bg-[#1a1a25] border border-[#2a2a3a] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500"
+                                    onkeypress="if(event.key==='Enter') recallMemory()">
+                                <button onclick="recallMemory()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-medium text-sm transition-colors">
+                                    Recall
+                                </button>
+                            </div>
+                            <div id="recallResults" class="mt-4 space-y-2"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Emotion Analysis Panel -->
+                <div id="panel-emotion" class="flex-1 overflow-y-auto p-6 hidden">
+                    <div class="max-w-4xl mx-auto space-y-6">
+                        <!-- Current Emotion -->
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">🎭 Current Emotional State</h3>
+                            <div class="grid grid-cols-4 gap-4">
+                                <div class="bg-[#1a1a25] rounded-xl p-4 text-center">
+                                    <div id="emotionIcon" class="text-4xl mb-2">😐</div>
+                                    <p id="emotionName" class="text-lg font-semibold">Neutral</p>
+                                    <p class="text-xs text-gray-400">Detected Emotion</p>
+                                </div>
+                                <div class="bg-[#1a1a25] rounded-xl p-4 text-center">
+                                    <div id="moodIcon" class="text-4xl mb-2">⚖️</div>
+                                    <p id="moodName" class="text-lg font-semibold">Balanced</p>
+                                    <p class="text-xs text-gray-400">Mood</p>
+                                </div>
+                                <div class="bg-[#1a1a25] rounded-xl p-4 text-center">
+                                    <div id="stressIcon" class="text-4xl mb-2">😌</div>
+                                    <p id="stressName" class="text-lg font-semibold">Low</p>
+                                    <p class="text-xs text-gray-400">Stress Level</p>
+                                </div>
+                                <div class="bg-[#1a1a25] rounded-xl p-4 text-center">
+                                    <div id="energyLevel" class="text-4xl mb-2">⚡</div>
+                                    <p id="energyPercent" class="text-lg font-semibold">50%</p>
+                                    <p class="text-xs text-gray-400">Energy Level</p>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <p id="emotionRecommendation" class="text-sm text-indigo-400 italic"></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Emotion Analysis -->
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">🔍 Emotion Analysis</h3>
+                            <div class="flex gap-3 mb-4">
+                                <input id="emotionTestInput" type="text" placeholder="Type something to analyze emotion..."
+                                    class="flex-1 bg-[#1a1a25] border border-[#2a2a3a] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500">
+                                <button onclick="analyzeEmotion()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-medium text-sm transition-colors">
+                                    Analyze
+                                </button>
+                            </div>
+                            <div id="emotionFactors" class="grid grid-cols-4 gap-4 text-sm">
+                                <div class="bg-[#1a1a25] rounded-lg p-3">
+                                    <p class="text-gray-400">Sentiment</p>
+                                    <p id="sentimentScore" class="font-semibold">0.0</p>
+                                </div>
+                                <div class="bg-[#1a1a25] rounded-lg p-3">
+                                    <p class="text-gray-400">Word Count</p>
+                                    <p id="wordCount" class="font-semibold">0</p>
+                                </div>
+                                <div class="bg-[#1a1a25] rounded-lg p-3">
+                                    <p class="text-gray-400">Exclamations</p>
+                                    <p id="exclamationCount" class="font-semibold">0</p>
+                                </div>
+                                <div class="bg-[#1a1a25] rounded-lg p-3">
+                                    <p class="text-gray-400">Questions</p>
+                                    <p id="questionCount" class="font-semibold">0</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Mood Trend -->
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">📈 Mood Trend</h3>
+                            <canvas id="moodChart" height="150"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Digital Twin Panel -->
+                <div id="panel-twin" class="flex-1 overflow-y-auto p-6 hidden">
+                    <div class="max-w-4xl mx-auto space-y-6">
+                        <!-- Twin Status -->
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">🧬 Digital Twin Status</h3>
+                            <div class="grid grid-cols-4 gap-4 mb-4">
+                                <div class="bg-[#1a1a25] rounded-xl p-4 text-center">
+                                    <p class="text-2xl font-bold text-indigo-400" id="twinHabits">0</p>
+                                    <p class="text-xs text-gray-400">Habits Detected</p>
+                                </div>
+                                <div class="bg-[#1a1a25] rounded-xl p-4 text-center">
+                                    <p class="text-2xl font-bold text-green-400" id="twinPatterns">0</p>
+                                    <p class="text-xs text-gray-400">Patterns Learned</p>
+                                </div>
+                                <div class="bg-[#1a1a25] rounded-xl p-4 text-center">
+                                    <p class="text-2xl font-bold text-yellow-400" id="twinFocus">--</p>
+                                    <p class="text-xs text-gray-400">Focus Score</p>
+                                </div>
+                                <div class="bg-[#1a1a25] rounded-xl p-4 text-center">
+                                    <p class="text-2xl font-bold text-purple-400" id="twinPrediction">--</p>
+                                    <p class="text-xs text-gray-400">Next Action</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Learned Preferences -->
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">⚙️ Learned Preferences</h3>
+                            <div id="preferencesList" class="grid grid-cols-3 gap-3">
+                                <p class="text-sm text-gray-400">Learning your preferences...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Habits -->
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">📊 Detected Habits</h3>
+                            <div id="habitsList" class="space-y-3">
+                                <p class="text-sm text-gray-400">Detecting habits from your patterns...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Proactive Suggestions -->
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">💡 Proactive Suggestions</h3>
+                            <div id="suggestionsList" class="space-y-2">
+                                <p class="text-sm text-gray-400">Loading suggestions...</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Learn from Interaction -->
+                        <div class="glass rounded-xl p-6">
+                            <h3 class="text-lg font-semibold mb-4">🧠 Teach Your Twin</h3>
+                            <div class="flex gap-3">
+                                <input id="learnInput" type="text" placeholder="Tell me something about yourself..."
+                                    class="flex-1 bg-[#1a1a25] border border-[#2a2a3a] rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500">
+                                <button onclick="teachTwin()" class="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 rounded-xl font-medium text-sm transition-colors">
+                                    Learn
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel - Live Visualization -->
+            <aside class="w-80 glass border-l border-[#2a2a3a] flex flex-col">
+                <div class="p-4 border-b border-[#2a2a3a]">
+                    <h2 class="text-sm font-semibold flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Live Activity
+                    </h2>
+                </div>
+                
+                <div class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin">
+                    <!-- Neural Network Visualization -->
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-xs text-gray-400 mb-3">Neural Activity</h3>
+                        <div id="neuralNet" class="flex flex-wrap gap-2 justify-center">
+                            <!-- Neural nodes will be rendered here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Current Thought -->
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-xs text-gray-400 mb-2">Current Thought</h3>
+                        <p id="currentThought" class="text-sm text-gray-300">Idle</p>
+                    </div>
+                    
+                    <!-- Recent Actions -->
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-xs text-gray-400 mb-3">Recent Actions</h3>
+                        <div id="recentActions" class="space-y-2 text-xs">
+                            <p class="text-gray-500">No recent actions</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Intent Confidence -->
+                    <div class="glass rounded-xl p-4">
+                        <h3 class="text-xs text-gray-400 mb-3">Intent Detection</h3>
+                        <div id="intentDisplay" class="space-y-2">
+                            <div class="flex justify-between text-xs">
+                                <span>Confidence</span>
+                                <span id="intentConfidence">0%</span>
+                            </div>
+                            <div class="h-2 bg-[#2a2a3a] rounded-full overflow-hidden">
+                                <div id="confidenceBar" class="h-full bg-indigo-500 transition-all" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+        </main>
+        
+        <!-- Status Bar -->
+        <footer class="glass px-6 py-2 flex items-center justify-between text-xs text-gray-400 border-t border-[#2a2a3a]">
+            <div class="flex items-center gap-4">
+                <span>02 v1.0.0</span>
+                <span>|</span>
+                <span id="sessionTime">Session: 0:00</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span id="responseTime">Response: --ms</span>
+                <span>|</span>
+                <span id="memoryUsage">Memory: 0 nodes</span>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        // ═══════════════════════════════════════════════════════════════════════════
+        // 02 v1 - Dashboard JavaScript
+        // ═══════════════════════════════════════════════════════════════════════════
+        
+        const API_URL = 'http://localhost:5000';
+        let isListening = false;
+        let sessionStart = Date.now();
+        let messages = [];
+        let activityData = [0, 0, 0, 0, 0, 0, 0];
+        let activityLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        let currentCode = '';
+        
+        // Charts
+        let activityChart, memoryChart;
+        
+        // ═══════════════════════════════════════════════════════════════════════════
+        // INITIALIZATION
+        // ═══════════════════════════════════════════════════════════════════════════
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            initNeuralNet();
+            updateStatus();
+            updateSessionTime();
+            setInterval(updateStatus, 5000);
+            setInterval(updateSessionTime, 1000);
+        });
+        
+        function initCharts() {
+            // Activity Chart
+            const activityCtx = document.getElementById('activityChart').getContext('2d');
+            activityChart = new Chart(activityCtx, {
+                type: 'line',
+                data: {
+                    labels: activityLabels,
+                    datasets: [{
+                        label: 'Requests',
+                        data: activityData,
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: '#2a2a3a' }, ticks: { color: '#a0a0b0' } },
+                        y: { grid: { color: '#2a2a3a' }, ticks: { color: '#a0a0b0' } }
+                    }
+                }
+            });
+            
+            // Memory Chart
+            const memoryCtx = document.getElementById('memoryChart').getContext('2d');
+            memoryChart = new Chart(memoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Episodic', 'Semantic', 'Procedural'],
+                    datasets: [{
+                        data: [12, 19, 13],
+                        backgroundColor: ['#6366f1', '#8b5cf6', '#ec4899']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { color: '#a0a0b0' } } }
+                }
+            });
+        }
+        
+        function initNeuralNet() {
+            const container = document.getElementById('neuralNet');
+            for (let i = 0; i < 16; i++) {
+                const node = document.createElement('div');
+                node.className = 'neural-node';
+                node.style.animationDelay = `${Math.random() * 2}s`;
+                container.appendChild(node);
+            }
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CHAT FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+        
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+            
+            input.value = '';
+            addMessage('user', message);
+            
+            // Show thinking
+            showThinking(true);
+            document.getElementById('currentThought').textContent = `Processing: "${message.substring(0, 30)}..."`;
+            
+            const startTime = Date.now();
+            
+            try {
+                const response = await fetch(`${API_URL}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const result = data.data;
+                    addMessage('assistant', result.response, result.intent);
+                    
+                    // Update UI
+                    document.getElementById('currentThought').textContent = `Intent: ${result.intent}`;
+                    document.getElementById('intentConfidence').textContent = `${Math.round(result.confidence * 100)}%`;
+                    document.getElementById('confidenceBar').style.width = `${result.confidence * 100}%`;
+                    
+                    // Add to recent actions
+                    addRecentAction(result.intent);
+                    
+                    // Update activity
+                    activityData[new Date().getDay()]++;
+                    activityChart.update();
+                } else {
+                    addMessage('assistant', 'I apologize, but I encountered an error.');
+                }
+            } catch (error) {
+                console.error('Chat error:', error);
+                addMessage('assistant', 'The AI system is currently unavailable. Please ensure the server is running.');
+            }
+            
+            showThinking(false);
+            document.getElementById('responseTime').textContent = `Response: ${Date.now() - startTime}ms`;
+        }
+        
+        function addMessage(role, content, intent = null) {
+            const container = document.getElementById('chatMessages');
+            const isUser = role === 'user';
+            
+            const div = document.createElement('div');
+            div.className = `flex items-start gap-3 chat-message ${isUser ? 'flex-row-reverse' : ''}`;
+            
+            if (isUser) {
+                div.innerHTML = `
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center flex-shrink-0">
+                        <span class="text-sm">👤</span>
+                    </div>
+                    <div class="bg-indigo-600 rounded-2xl rounded-tr-none px-4 py-3 max-w-xl">
+                        <p class="text-sm">${escapeHtml(content)}</p>
+                    </div>
+                `;
+            } else {
+                div.innerHTML = `
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <span class="text-sm font-bold">02</span>
+                    </div>
+                    <div class="bg-[#1a1a25] rounded-2xl rounded-tl-none px-4 py-3 max-w-xl">
+                        ${intent ? `<span class="text-xs text-indigo-400 mb-1 block">${intent}</span>` : ''}
+                        <p class="text-sm whitespace-pre-wrap">${escapeHtml(content)}</p>
+                    </div>
+                `;
+            }
+            
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+            messages.push({ role, content, intent });
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function showThinking(show) {
+            const bar = document.getElementById('thinkingBar');
+            if (show) {
+                bar.classList.remove('hidden');
+            } else {
+                bar.classList.add('hidden');
+            }
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════════════
+        // CODE FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+        
+        async function generateCode() {
+            const task = document.getElementById('codeTask').value.trim();
+            const language = document.getElementById('codeLanguage').value;
+            
+            if (!task) return;
+            
+            try {
+                const body = { task };
+                if (language) body.language = language;
+                
+                const response = await fetch(`${API_URL}/dev/generate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentCode = data.data.code;
+                    document.getElementById('codeResult').textContent = currentCode;
+                    document.getElementById('codeOutput').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Code generation error:', error);
+            }
+        }
+        
+        function copyCode() {
+            navigator.clipboard.writeText(currentCode);
+        }
+        
+        async function explainCode() {
+            if (!currentCode) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/dev/explain`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: currentCode })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addMessage('assistant', data.data.explanation);
+                }
+            } catch (error) {
+                console.error('Explain error:', error);
+            }
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════════════
+        // MEMORY FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+        
+        async function storeMemory() {
+            const content = document.getElementById('storeInput').value.trim();
+            const type = document.getElementById('memoryType').value;
+            
+            if (!content) return;
+            
+            try {
+                await fetch(`${API_URL}/memory/store`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content, type })
+                });
+                
+                document.getElementById('storeInput').value = '';
+                updateStatus();
+            } catch (error) {
+                console.error('Store memory error:', error);
+            }
+        }
+        
+        async function recallMemory() {
+            const query = document.getElementById('recallInput').value.trim();
+            if (!query) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/memory/recall?query=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                const resultsDiv = document.getElementById('recallResults');
+                resultsDiv.innerHTML = '';
+                
+                if (data.success && data.data.length > 0) {
+                    data.data.forEach(memory => {
+                        const div = document.createElement('div');
+                        div.className = 'memory-node glass rounded-lg p-3';
+                        div.innerHTML = `
+                            <p class="text-sm">${escapeHtml(memory.content)}</p>
+                            <div class="flex gap-2 mt-2 text-xs text-gray-400">
+                                <span class="px-2 py-0.5 rounded bg-[#2a2a3a]">${memory.type}</span>
+                                <span>Accessed ${memory.access_count} times</span>
+                            </div>
+                        `;
+                        resultsDiv.appendChild(div);
+                    });
+                } else {
+                    resultsDiv.innerHTML = '<p class="text-gray-400 text-sm">No memories found.</p>';
+                }
+            } catch (error) {
+                console.error('Recall memory error:', error);
+            }
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════════════
+        // UI FUNCTIONS
+        // ═══════════════════════════════════════════════════════════════════════════
+        
+        function switchTab(tab) {
+            ['chat', 'dashboard', 'code', 'memory', 'emotion', 'twin'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.toggle('border-indigo-500', t === tab);
+                document.getElementById(`tab-${t}`).classList.toggle('border-transparent', t !== tab);
+                document.getElementById(`tab-${t}`).classList.toggle('text-white', t === tab);
+                document.getElementById(`tab-${t}`).classList.toggle('text-gray-400', t !== tab);
+                document.getElementById(`panel-${t}`).classList.toggle('hidden', t !== tab);
+            });
+            
+            // Load data for specific tabs
+            if (tab === 'emotion') loadEmotionData();
+            if (tab === 'twin') loadTwinData();
+        }
+        
+        function toggleVoice() {
+            isListening = !isListening;
+            const btn = document.getElementById('voiceToggle');
+            btn.classList.toggle('bg-indigo-600', isListening);
+            btn.classList.toggle('bg-[#1a1a25]', !isListening);
+            
+            if (isListening) {
+                // Would integrate with Voice02 class here
+                console.log('Voice listening started');
+            }
+        }
+        
+        function addRecentAction(intent) {
+            const container = document.getElementById('recentActions');
+            const time = new Date().toLocaleTimeString();
+            
+            const div = document.createElement('div');
+            div.className = 'flex justify-between text-gray-300';
+            div.innerHTML = `<span>${intent}</span><span class="text-gray-500">${time}</span>`;
+            
+            container.insertBefore(div, container.firstChild);
+            
+            // Keep only last 5
+            while (container.children.length > 5) {
+                container.removeChild(container.lastChild);
+            }
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════════════
+        // STATUS UPDATES
+        // ═══════════════════════════════════════════════════════════════════════════
+        
+        async function updateStatus() {
+            try {
+                const response = await fetch(`${API_URL}/status`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.data.stats || {};
+                    document.getElementById('statRequests').textContent = stats.requests_processed || 0;
+                    document.getElementById('statMemories').textContent = data.data.memory?.total_memories || 0;
+                    document.getElementById('statGoals').textContent = data.data.active_goals || 0;
+                    document.getElementById('memoryCount').textContent = data.data.memory?.total_memories || 0;
+                    document.getElementById('connectionCount').textContent = data.data.memory?.total_connections || 0;
+                    document.getElementById('memoryUsage').textContent = `Memory: ${data.data.memory?.total_memories || 0} nodes`;
+                    
+                    // Update memory chart
+                    const memStats = data.data.memory?.memories_by_type || {};
+                    memoryChart.data.datasets[0].data = [
+                        memStats.episodic || 0,
+                        memStats.semantic || 0,
+                        memStats.procedural || 0
+                    ];
+                    memoryChart.update();
+                }
+            } catch (error) {
+                console.error('Status update error:', error);
+            }
+        }
+        
+        function updateSessionTime() {
+            const elapsed = Math.floor((Date.now() - sessionStart) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('sessionTime').textContent = `Session: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        function openSettings() {
+            alert('Settings panel coming soon!');
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════════════
+        // EMOTION DETECTION
+        // ═══════════════════════════════════════════════════════════════════════════
+        
+        let moodChart;
+        
+        function loadEmotionData() {
+            // Initialize mood chart if not exists
+            if (!moodChart) {
+                const ctx = document.getElementById('moodChart')?.getContext('2d');
+                if (ctx) {
+                    moodChart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                            datasets: [{
+                                label: 'Mood Score',
+                                data: [2, 3, 2.5, 4, 3, 2, 3.5],
+                                borderColor: '#6366f1',
+                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                fill: true,
+                                tension: 0.4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                y: { min: 0, max: 5, grid: { color: '#2a2a3a' }, ticks: { color: '#a0a0b0' } },
+                                x: { grid: { color: '#2a2a3a' }, ticks: { color: '#a0a0b0' } }
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Fetch current emotion
+            fetch(`${API_URL}/emotion/current`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        updateEmotionDisplay(data.data);
+                    }
+                })
+                .catch(console.error);
+        }
+        
+        function updateEmotionDisplay(emotion) {
+            const emotionIcons = {
+                happy: '😊', sad: '😢', angry: '😠', frustrated: '😤',
+                excited: '🤩', calm: '😌', stressed: '😰', confused: '🤔',
+                neutral: '😐', tired: '😴', focused: '💪', bored: '😐'
+            };
+            
+            const moodIcons = {
+                very_positive: '🌟', positive: '🙂', neutral: '⚖️', 
+                negative: '🙁', very_negative: '💔'
+            };
+            
+            const stressIcons = {
+                low: '😌', moderate: '😐', high: '😰', critical: '🚨'
+            };
+            
+            document.getElementById('emotionIcon').textContent = emotionIcons[emotion.emotion] || '😐';
+            document.getElementById('emotionName').textContent = emotion.emotion.charAt(0).toUpperCase() + emotion.emotion.slice(1);
+            document.getElementById('moodIcon').textContent = moodIcons[emotion.mood] || '⚖️';
+            document.getElementById('moodName').textContent = emotion.mood.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+            document.getElementById('stressIcon').textContent = stressIcons[emotion.stress_level] || '😌';
+            document.getElementById('stressName').textContent = emotion.stress_level.charAt(0).toUpperCase() + emotion.stress_level.slice(1);
+            document.getElementById('energyPercent').textContent = `${Math.round(emotion.energy * 100)}%`;
+            document.getElementById('emotionRecommendation').textContent = emotion.recommendation || '';
+        }
+        
+        function analyzeEmotion() {
+            const text = document.getElementById('emotionTestInput').value.trim();
+            if (!text) return;
+            
+            fetch(`${API_URL}/emotion/analyze`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const result = data.data;
+                    updateEmotionDisplay(result);
+                    
+                    // Update factors
+                    document.getElementById('sentimentScore').textContent = result.factors?.sentiment?.toFixed(2) || '0.0';
+                    document.getElementById('wordCount').textContent = result.factors?.word_count || 0;
+                    document.getElementById('exclamationCount').textContent = result.factors?.exclamation_count || 0;
+                    document.getElementById('questionCount').textContent = result.factors?.question_count || 0;
+                }
+            })
+            .catch(console.error);
+        }
+        
+        // ═══════════════════════════════════════════════════════════════════════════
+        // DIGITAL TWIN
+        // ═══════════════════════════════════════════════════════════════════════════
+        
+        function loadTwinData() {
+            // Load twin summary
+            fetch(`${API_URL}/twin/summary`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const summary = data.data;
+                        document.getElementById('twinHabits').textContent = summary.habits_count || 0;
+                        document.getElementById('twinPatterns').textContent = summary.patterns_count || 0;
+                        document.getElementById('twinFocus').textContent = summary.insights?.focus_score || '--';
+                        document.getElementById('twinPrediction').textContent = summary.next_prediction ? 
+                            (summary.next_prediction.length > 10 ? summary.next_prediction.substring(0, 10) + '...' : summary.next_prediction) : '--';
+                    }
+                })
+                .catch(console.error);
+            
+            // Load preferences
+            fetch(`${API_URL}/twin/preferences`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && Object.keys(data.data.preferences).length > 0) {
+                        const prefs = data.data.preferences;
+                        const prefsList = document.getElementById('preferencesList');
+                        prefsList.innerHTML = Object.entries(prefs).map(([key, value]) => `
+                            <div class="bg-[#1a1a25] rounded-lg p-3">
+                                <p class="text-xs text-gray-400">${key.replace(/_/g, ' ')}</p>
+                                <p class="font-semibold">${value}</p>
+                            </div>
+                        `).join('');
+                    }
+                })
+                .catch(console.error);
+            
+            // Load habits
+            fetch(`${API_URL}/twin/habits`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.data.habits.length > 0) {
+                        const habitsList = document.getElementById('habitsList');
+                        habitsList.innerHTML = data.data.habits.map(h => `
+                            <div class="bg-[#1a1a25] rounded-lg p-4 flex justify-between items-center">
+                                <div>
+                                    <p class="font-semibold">${h.name}</p>
+                                    <p class="text-xs text-gray-400">${h.times_triggered} times triggered</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm text-indigo-400">${h.streak} day streak</p>
+                                    <p class="text-xs text-gray-400">${Math.round(h.completion_rate * 100)}% completion</p>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                })
+                .catch(console.error);
+            
+            // Load suggestions
+            fetch(`${API_URL}/suggestions/evaluate`)
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success && data.data.suggestions.length > 0) {
+                        const suggestionsList = document.getElementById('suggestionsList');
+                        suggestionsList.innerHTML = data.data.suggestions.map((s, i) => `
+                            <div class="bg-[#1a1a25] rounded-lg p-3 flex items-center gap-3">
+                                <span class="text-indigo-400 font-bold">${i + 1}.</span>
+                                <p class="text-sm flex-1">${s.suggestion}</p>
+                                <button onclick="acceptSuggestion('${s.suggestion}')" class="px-3 py-1 text-xs bg-indigo-600/30 hover:bg-indigo-600/50 rounded-lg">
+                                    Accept
+                                </button>
+                            </div>
+                        `).join('');
+                    }
+                })
+                .catch(console.error);
+        }
+        
+        function teachTwin() {
+            const input = document.getElementById('learnInput').value.trim();
+            if (!input) return;
+            
+            fetch(`${API_URL}/twin/learn`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type: 'preference',
+                    content: input,
+                    success: true
+                })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('learnInput').value = '';
+                    loadTwinData();
+                }
+            })
+            .catch(console.error);
+        }
+        
+        function acceptSuggestion(suggestion) {
+            fetch(`${API_URL}/suggestions/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ suggestion, accepted: true })
+            })
+            .then(r => r.json())
+            .then(() => loadTwinData())
+            .catch(console.error);
+        }
+    </script>
+</body>
+</html>
