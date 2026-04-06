@@ -1,0 +1,9 @@
+flask
+flask-cors
+requests
+speech-recognition
+gtts
+pygame
+psutil
+numpy
+pandas

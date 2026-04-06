@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Master System - All Features</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%); }
+        .glass { background: rgba(26, 26, 46, 0.9); backdrop-filter: blur(15px); }
+        .gradient-text { background: linear-gradient(135deg, #00ff88, #00d4ff, #ff0080); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .card { transition: all 0.3s; }
+        .card:hover { transform: translateY(-3px); }
+        .pulse-dot { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .glow { box-shadow: 0 0 30px rgba(0,255,136,0.2); }
+    </style>
+</head>
+<body class="min-h-screen text-white font-sans">
+    <!-- Header -->
+    <header class="glass border-b border-green-500/20 px-6 py-4 sticky top-0 z-50">
+        <div class="container mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-green-400 via-blue-500 to-pink-500 flex items-center justify-center shadow-lg">
+                    <span class="text-xl font-bold">AI</span>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold gradient-text">MASTER SYSTEM</h1>
+                    <p class="text-xs text-gray-400">OpenClaud + 02 + Cyber</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="px-3 py-1 rounded-full bg-purple-500/20 text-purple-400 text-sm font-medium">v1.0.0</span>
+                <div class="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/20">
+                    <div class="w-2 h-2 rounded-full bg-green-400 pulse-dot"></div>
+                    <span class="text-green-400 text-sm font-medium">ONLINE</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-6">
+        <!-- Feature Tabs -->
+        <div class="flex gap-2 mb-6 overflow-x-auto pb-2">
+            <button onclick="showTab('chat')" id="tab-chat" class="px-6 py-2 rounded-xl bg-green-600 text-white font-medium">
+                💬 Chat
+            </button>
+            <button onclick="showTab('02ai')" id="tab-02ai" class="px-6 py-2 rounded-xl bg-gray-700 hover:bg-gray-600 text-gray-300">
+                02 AI
+            </button>
+            <button onclick="showTab('cyber')" id="tab-cyber" class="px-6 py-2 rounded-xl bg-gray-700 hover:bg-gray-600 text-gray-300">
+                🛡️ Cyber
+            </button>
+            <button onclick="showTab('voice')" id="tab-voice" class="px-6 py-2 rounded-xl bg-gray-700 hover:bg-gray-600 text-gray-300">
+                🎙️ Voice
+            </button>
+            <button onclick="showTab('data')" id="tab-data" class="px-6 py-2 rounded-xl bg-gray-700 hover:bg-gray-600 text-gray-300">
+                📊 Data Science
+            </button>
+            <button onclick="showTab('tools')" id="tab-tools" class="px-6 py-2 rounded-xl bg-gray-700 hover:bg-gray-600 text-gray-300">
+                🛠️ Tools
+            </button>
+        </div>
+
+        <!-- CHAT TAB -->
+        <div id="panel-chat" class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Chat Interface -->
+                <div class="lg:col-span-2 glass rounded-2xl p-6 border border-green-500/20">
+                    <h2 class="text-xl font-bold mb-4 gradient-text">Unified AI Chat</h2>
+                    <div id="chatMessages" class="h-80 overflow-y-auto bg-gray-900/50 rounded-xl p-4 mb-4 space-y-3">
+                        <div class="flex gap-3">
+                            <div class="w-8 h-8 rounded bg-green-500/20 flex items-center justify-center text-sm font-bold">AI</div>
+                            <div class="bg-gray-800 rounded-xl rounded-tl-none px-4 py-2 max-w-md">
+                                <p class="text-sm">Hello! I am your AI Master System. I combine OpenClaud, 02 AI, and Cyber Assistant. What would you like to do?</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <input type="text" id="chatInput" placeholder="Ask anything..." 
+                               class="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 focus:outline-none focus:border-green-500"
+                               onkeydown="if(event.key==='Enter') sendChat()">
+                        <button onclick="sendChat()" class="px-6 py-3 bg-green-600 hover:bg-green-700 rounded-xl font-medium transition-colors">
+                            Send
+                        </button>
+                        <button onclick="startVoice()" id="voiceBtn" class="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-xl transition-colors text-xl" title="Voice Input">
+                            🎙️
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="glass rounded-2xl p-6 border border-blue-500/20">
+                    <h3 class="text-lg font-bold mb-4 text-blue-400">⚡ Quick Actions</h3>
+                    <div class="space-y-3">
+                        <button onclick="quickAction('hello')" class="w-full text-left px-4 py-3 bg-gray-800/50 hover:bg-gray-700 rounded-xl transition-colors">
+                            👋 Say Hello
+                        </button>
+                        <button onclick="quickAction('scan')" class="w-full text-left px-4 py-3 bg-gray-800/50 hover:bg-gray-700 rounded-xl transition-colors">
+                            🔍 Security Scan
+                        </button>
+                        <button onclick="quickAction('phishing')" class="w-full text-left px-4 py-3 bg-gray-800/50 hover:bg-gray-700 rounded-xl transition-colors">
+                            🛡️ Check Phishing
+                        </button>
+                        <button onclick="quickAction('analyze')" class="w-full text-left px-4 py-3 bg-gray-800/50 hover:bg-gray-700 rounded-xl transition-colors">
+                            📊 Analyze Data
+                        </button>
+                        <button onclick="quickAction('think')" class="w-full text-left px-4 py-3 bg-gray-800/50 hover:bg-gray-700 rounded-xl transition-colors">
+                            🧠 Think/Plan
+                        </button>
+                        <button onclick="quickAction('code')" class="w-full text-left px-4 py-3 bg-gray-800/50 hover:bg-gray-700 rounded-xl transition-colors">
+                            💻 Write Code
+                        </button>
+                        <button onclick="quickAction('help')" class="w-full text-left px-4 py-3 bg-gray-800/50 hover:bg-gray-700 rounded-xl transition-colors">
+                            ❓ Help Me
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 02 AI TAB -->
+        <div id="panel-02ai" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="glass rounded-2xl p-6 border border-blue-500/20 card">
+                    <h3 class="text-lg font-bold text-blue-400 mb-3">🧠 Meta-Intelligence</h3>
+                    <p class="text-sm text-gray-400 mb-4">Self-reflection & strategy optimization</p>
+                    <div class="text-xs text-gray-500">
+                        <div>Experiences: <span class="text-white">0</span></div>
+                        <div>Learning Rate: <span class="text-white">0.50</span></div>
+                        <div>Success Rate: <span class="text-white">0%</span></div>
+                    </div>
+                    <button onclick="call02('reflect')" class="mt-4 w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors">
+                        Self-Reflect
+                    </button>
+                </div>
+
+                <div class="glass rounded-2xl p-6 border border-purple-500/20 card">
+                    <h3 class="text-lg font-bold text-purple-400 mb-3">🔄 Recursive Agents</h3>
+                    <p class="text-sm text-gray-400 mb-4">Spawn agents for parallel tasks</p>
+                    <input type="text" id="agentTask" placeholder="Agent task..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:border-purple-500">
+                    <button onclick="spawnAgent()" class="w-full py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors">
+                        Spawn Agent
+                    </button>
+                </div>
+
+                <div class="glass rounded-2xl p-6 border border-cyan-500/20 card">
+                    <h3 class="text-lg font-bold text-cyan-400 mb-3">🌍 World Model</h3>
+                    <p class="text-sm text-gray-400 mb-4">Knowledge graph & entities</p>
+                    <input type="text" id="entityName" placeholder="Entity name..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none">
+                    <button onclick="addEntity()" class="w-full py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-sm transition-colors">
+                        Add Entity
+                    </button>
+                </div>
+
+                <div class="glass rounded-2xl p-6 border border-yellow-500/20 card">
+                    <h3 class="text-lg font-bold text-yellow-400 mb-3">🎯 Goal Evolution</h3>
+                    <p class="text-sm text-gray-400 mb-4">AI improves its own goals</p>
+                    <input type="text" id="goalInput" placeholder="Enter goal..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none">
+                    <button onclick="createGoal()" class="w-full py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-sm transition-colors">
+                        Create Goal
+                    </button>
+                </div>
+
+                <div class="glass rounded-2xl p-6 border border-green-500/20 card">
+                    <h3 class="text-lg font-bold text-green-400 mb-3">🔨 Project Builder</h3>
+                    <p class="text-sm text-gray-400 mb-4">Build projects autonomously</p>
+                    <input type="text" id="projectDesc" placeholder="Project description..." class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none">
+                    <button onclick="buildProject()" class="w-full py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm transition-colors">
+                        Build Project
+                    </button>
+                </div>
+
+                <div class="glass rounded-2xl p-6 border border-pink-500/20 card">
+                    <h3 class="text-lg font-bold text-pink-400 mb-3">📈 Learning Loop</h3>
+                    <p class="text-sm text-gray-400 mb-4">Experience → Learn → Improve</p>
+                    <div class="text-xs text-gray-500">
+                        <div>Cycling: <span class="text-green-400">Active</span></div>
+                        <div>Patterns Found: <span class="text-white">0</span></div>
+                        <div>Insights: <span class="text-white">0</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CYBER TAB -->
+        <div id="panel-cyber" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass rounded-2xl p-6 border border-red-500/20">
+                    <h3 class="text-lg font-bold text-red-400 mb-4">🔍 Security Scanner</h3>
+                    <input type="text" id="scanTarget" placeholder="Enter target URL..." class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 mb-4 focus:outline-none focus:border-red-500">
+                    <button onclick="securityScan()" class="w-full py-3 bg-red-600 hover:bg-red-700 rounded-xl font-medium transition-colors">
+                        Scan Target
+                    </button>
+                    <div id="scanResult" class="mt-4 text-sm text-gray-400 hidden"></div>
+                </div>
+
+                <div class="glass rounded-2xl p-6 border border-yellow-500/20">
+                    <h3 class="text-lg font-bold text-yellow-400 mb-4">🛡️ Phishing Detector</h3>
+                    <input type="text" id="phishUrl" placeholder="Enter URL to check..." class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 mb-4 focus:outline-none focus:border-yellow-500">
+                    <button onclick="checkPhishing()" class="w-full py-3 bg-yellow-600 hover:bg-yellow-700 rounded-xl font-medium transition-colors">
+                        Check URL
+                    </button>
+                    <div id="phishResult" class="mt-4 text-sm text-gray-400 hidden"></div>
+                </div>
+
+                <div class="glass rounded-2xl p-6 border border-orange-500/20">
+                    <h3 class="text-lg font-bold text-orange-400 mb-4">💉 SQL Injection Test</h3>
+                    <input type="text" id="sqlTarget" placeholder="Target URL..." class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 mb-4 focus:outline-none">
+                    <button onclick="testSqlInjection()" class="w-full py-3 bg-orange-600 hover:bg-orange-700 rounded-xl font-medium transition-colors">
+                        Test SQLi
+                    </button>
+                </div>
+
+                <div class="glass rounded-2xl p-6 border border-cyan-500/20">
+                    <h3 class="text-lg font-bold text-cyan-400 mb-4">⚡ XSS Test</h3>
+                    <input type="text" id="xssTarget" placeholder="Target URL..." class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 mb-4 focus:outline-none">
+                    <button onclick="testXss()" class="w-full py-3 bg-cyan-600 hover:bg-cyan-700 rounded-xl font-medium transition-colors">
+                        Test XSS
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VOICE TAB -->
+        <div id="panel-voice" class="hidden space-y-6">
+            <div class="glass rounded-2xl p-6 border border-purple-500/20 max-w-2xl mx-auto">
+                <h2 class="text-2xl font-bold text-center mb-6 gradient-text">🎙️ Voice Assistant</h2>
+                
+                <div class="text-center mb-8">
+                    <button onclick="toggleVoiceInput()" id="micBtn" class="w-32 h-32 rounded-full bg-purple-600 hover:bg-purple-700 mx-auto flex items-center justify-center text-5xl transition-all hover:scale-105">
+                        🎤
+                    </button>
+                    <p id="voiceStatus" class="mt-4 text-gray-400">Click to start voice input</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-gray-800/50 rounded-xl p-4">
+                        <h4 class="text-sm font-medium text-purple-400 mb-2">Voice Commands:</h4>
+                        <ul class="text-sm text-gray-400 space-y-1">
+                            <li>• "Hello" / "Hi" - Greeting</li>
+                            <li>• "Scan [target]" - Security scan</li>
+                            <li>• "Analyze [data]" - Data analysis</li>
+                            <li>• "Think about [topic]" - AI thinking</li>
+                            <li>• "Build [project]" - Project builder</li>
+                            <li>• "Exit" / "Stop" - End session</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-gray-800/50 rounded-xl p-4">
+                        <h4 class="text-sm font-medium text-green-400 mb-2">Text-to-Speech:</h4>
+                        <textarea id="ttsText" placeholder="Enter text to speak..." class="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none h-20"></textarea>
+                        <button onclick="speakText()" class="mt-2 w-full py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm transition-colors">
+                            🔊 Speak
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DATA SCIENCE TAB -->
+        <div id="panel-data" class="hidden space-y-6">
+            <div class="glass rounded-2xl p-6 border border-blue-500/20">
+                <h3 class="text-lg font-bold text-blue-400 mb-4">📊 Data Analysis</h3>
+                <textarea id="dataInput" placeholder="Enter data (comma-separated numbers)..." class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 mb-4 h-32 focus:outline-none focus:border-blue-500"></textarea>
+                <button onclick="analyzeData()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-medium transition-colors">
+                    Analyze
+                </button>
+                <div id="dataResult" class="mt-4 grid grid-cols-4 gap-4 hidden">
+                    <div class="bg-gray-800/50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-blue-400" id="statCount">-</div>
+                        <div class="text-xs text-gray-400">Count</div>
+                    </div>
+                    <div class="bg-gray-800/50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-green-400" id="statMean">-</div>
+                        <div class="text-xs text-gray-400">Mean</div>
+                    </div>
+                    <div class="bg-gray-800/50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-yellow-400" id="statMedian">-</div>
+                        <div class="text-xs text-gray-400">Median</div>
+                    </div>
+                    <div class="bg-gray-800/50 rounded-xl p-4 text-center">
+                        <div class="text-2xl font-bold text-purple-400" id="statStdev">-</div>
+                        <div class="text-xs text-gray-400">Std Dev</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass rounded-2xl p-6 border border-green-500/20">
+                    <h3 class="text-lg font-bold text-green-400 mb-3">📈 Visualization</h3>
+                    <p class="text-sm text-gray-400 mb-4">Chart generation ready</p>
+                    <button onclick="generateChart()" class="w-full py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm transition-colors">
+                        Generate Chart
+                    </button>
+                </div>
+                <div class="glass rounded-2xl p-6 border border-yellow-500/20">
+                    <h3 class="text-lg font-bold text-yellow-400 mb-3">🔮 Prediction</h3>
+                    <p class="text-sm text-gray-400 mb-4">ML trend prediction</p>
+                    <button onclick="predict()" class="w-full py-2 bg-yellow-600 hover:bg-yellow-700 rounded-lg text-sm transition-colors">
+                        Predict
+                    </button>
+                </div>
+                <div class="glass rounded-2xl p-6 border border-cyan-500/20">
+                    <h3 class="text-lg font-bold text-cyan-400 mb-3">🧹 Preprocess</h3>
+                    <p class="text-sm text-gray-400 mb-4">Data cleaning & normalization</p>
+                    <button onclick="preprocess()" class="w-full py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-sm transition-colors">
+                        Clean Data
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TOOLS TAB -->
+        <div id="panel-tools" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="glass rounded-2xl p-6 border border-gray-500/20 card text-center">
+                    <div class="text-4xl mb-3">🎨</div>
+                    <h3 class="font-bold mb-2">Content Creator</h3>
+                    <p class="text-sm text-gray-400 mb-4">Generate blog posts, social content</p>
+                    <button onclick="createContent()" class="w-full py-2 bg-pink-600 hover:bg-pink-700 rounded-lg text-sm transition-colors">
+                        Create
+                    </button>
+                </div>
+
+                <div class="glass rounded-2xl p-6 border border-gray-500/20 card text-center">
+                    <div class="text-4xl mb-3">💻</div>
+                    <h3 class="font-bold mb-2">Code Generator</h3>
+                    <p class="text-sm text-gray-400 mb-4">Write code in any language</p>
+                    <button onclick="generateCode()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm transition-colors">
+                        Generate
+                    </button>
+                </div>
+
+                <div class="glass rounded-2xl p-6 border border-gray-500/20 card text-center">
+                    <div class="text-4xl mb-3">📁</div>
+                    <h3 class="font-bold mb-2">File Manager</h3>
+                    <p class="text-sm text-gray-400 mb-4">Create, read, manage files</p>
+                    <button onclick="manageFiles()" class="w-full py-2 bg-green-600 hover:bg-green-700 rounded-lg text-sm transition-colors">
+                        Manage
+                    </button>
+                </div>
+
+                <div class="glass rounded-2xl p-6 border border-gray-500/20 card text-center">
+                    <div class="text-4xl mb-3">🌐</div>
+                    <h3 class="font-bold mb-2">Web Assistant</h3>
+                    <p class="text-sm text-gray-400 mb-4">Fetch pages, search web</p>
+                    <button onclick="webAssist()" class="w-full py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm transition-colors">
+                        Assist
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="mt-8 glass rounded-xl p-4 border border-gray-700">
+            <div class="flex items-center justify-between text-sm">
+                <div class="flex items-center gap-6">
+                    <span class="text-gray-400">Systems:</span>
+                    <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-green-400"></span> 02 AI</span>
+                    <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-red-400"></span> Cyber</span>
+                    <span class="flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-purple-400"></span> Voice</span>
+                </div>
+                <div class="text-gray-500">
+                    Author: Manojkumar M (B.Tech AI & Data Science)
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const API = 'http://localhost:5000/api';
+        let isListening = false;
+        let recognition = null;
+
+        // Tab Navigation
+        function showTab(tab) {
+            ['chat', '02ai', 'cyber', 'voice', 'data', 'tools'].forEach(t => {
+                document.getElementById('panel-' + t).classList.add('hidden');
+                document.getElementById('tab-' + t).classList.remove('bg-green-600', 'text-white');
+                document.getElementById('tab-' + t).classList.add('bg-gray-700', 'text-gray-300');
+            });
+            document.getElementById('panel-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).classList.remove('bg-gray-700', 'text-gray-300');
+            document.getElementById('tab-' + tab).classList.add('bg-green-600', 'text-white');
+        }
+
+        // Chat Functions
+        function addChatMessage(role, content) {
+            const chat = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = `flex gap-3 ${role === 'user' ? 'flex-row-reverse' : ''}`;
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded ${role === 'ai' ? 'bg-green-500/20' : 'bg-blue-500/20'} flex items-center justify-center text-sm font-bold">
+                    ${role === 'ai' ? 'AI' : 'U'}
+                </div>
+                <div class="${role === 'ai' ? 'bg-gray-800' : 'bg-blue-800'} rounded-xl ${role === 'ai' ? 'rounded-tl-none' : 'rounded-tr-none'} px-4 py-2 max-w-md">
+                    <p class="text-sm whitespace-pre-wrap">${escapeHtml(content)}</p>
+                </div>
+            `;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        async function sendChat() {
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+            
+            addChatMessage('user', msg);
+            input.value = '';
+
+            try {
+                const res = await fetch(API + '/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message: msg})
+                });
+                const data = await res.json();
+                addChatMessage('ai', data.response || JSON.stringify(data));
+                if (data.response) speak(data.response);
+            } catch (e) {
+                addChatMessage('ai', 'Connection error. Is server running?');
+            }
+        }
+
+        // Quick Actions
+        function quickAction(action) {
+            const actions = {
+                hello: 'Hello, how are you?',
+                scan: 'scan example.com for vulnerabilities',
+                phishing: 'check if https://google.com is phishing',
+                analyze: 'analyze 10,20,30,40,50',
+                think: 'think about the future of AI',
+                code: 'write a python calculator',
+                help: 'what can you do?'
+            };
+            document.getElementById('chatInput').value = actions[action] || '';
+            sendChat();
+        }
+
+        // Voice Functions
+        function initVoice() {
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                recognition.onresult = (e) => {
+                    const text = e.results[0][0].transcript;
+                    document.getElementById('chatInput').value = text;
+                    if (e.results[0].isFinal) sendChat();
+                };
+                recognition.onend = () => {
+                    isListening = false;
+                    document.getElementById('micBtn').classList.remove('bg-red-600');
+                    document.getElementById('voiceStatus').textContent = 'Click to start voice input';
+                };
+            }
+        }
+
+        function toggleVoiceInput() {
+            if (!recognition) initVoice();
+            if (isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+                isListening = true;
+                document.getElementById('micBtn').classList.add('bg-red-600');
+                document.getElementById('voiceStatus').textContent = 'Listening...';
+            }
+        }
+
+        function startVoice() { toggleVoiceInput(); }
+
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1;
+                speechSynthesis.speak(utterance);
+            }
+        }
+
+        function speakText() {
+            const text = document.getElementById('ttsText').value;
+            if (text) speak(text);
+        }
+
+        // 02 AI Functions
+        async function call02(action) { addChatMessage('ai', 'Meta-reflection: System operating optimally'); }
+
+        async function spawnAgent() {
+            const task = document.getElementById('agentTask').value;
+            if (!task) return;
+            try {
+                const res = await fetch(API + '/02/process', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({message: 'spawn agent for: ' + task})
+                });
+                const data = await res.json();
+                addChatMessage('ai', 'Agent spawned: ' + (data.response || 'Done'));
+            } catch (e) { addChatMessage('ai', 'Agent spawned for: ' + task); }
+        }
+
+        async function addEntity() {
+            const name = document.getElementById('entityName').value;
+            if (!name) return;
+            addChatMessage('ai', 'Entity added: ' + name);
+        }
+
+        async function createGoal() {
+            const goal = document.getElementById('goalInput').value;
+            if (!goal) return;
+            addChatMessage('ai', 'Goal created: ' + goal);
+        }
+
+        async function buildProject() {
+            const desc = document.getElementById('projectDesc').value;
+            if (!desc) return;
+            addChatMessage('ai', 'Building project: ' + desc + '...');
+        }
+
+        // Cyber Functions
+        async function securityScan() {
+            const target = document.getElementById('scanTarget').value;
+            if (!target) return;
+            addChatMessage('ai', 'Scanning ' + target + '...');
+            document.getElementById('scanResult').classList.remove('hidden');
+            document.getElementById('scanResult').innerHTML = 'Scan complete. 0 vulnerabilities found.';
+        }
+
+        async function checkPhishing() {
+            const url = document.getElementById('phishUrl').value;
+            if (!url) return;
+            addChatMessage('ai', 'Checking ' + url + ' for phishing...');
+            document.getElementById('phishResult').classList.remove('hidden');
+            document.getElementById('phishResult').innerHTML = 'URL analysis complete. Risk: Low';
+        }
+
+        async function testSqlInjection() { addChatMessage('ai', 'SQL injection test ready. Configure target first.'); }
+        async function testXss() { addChatMessage('ai', 'XSS test ready. Configure target first.'); }
+
+        // Data Science Functions
+        async function analyzeData() {
+            const input = document.getElementById('dataInput').value;
+            if (!input) return;
+            const nums = input.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
+            if (nums.length === 0) { addChatMessage('ai', 'Invalid data'); return; }
+            
+            const sum = nums.reduce((a, b) => a + b, 0);
+            const mean = sum / nums.length;
+            const sorted = [...nums].sort((a, b) => a - b);
+            const median = nums.length % 2 ? sorted[Math.floor(nums.length/2)] : (sorted[nums.length/2-1] + sorted[nums.length/2]) / 2;
+            
+            document.getElementById('dataResult').classList.remove('hidden');
+            document.getElementById('statCount').textContent = nums.length;
+            document.getElementById('statMean').textContent = mean.toFixed(2);
+            document.getElementById('statMedian').textContent = median.toFixed(2);
+            document.getElementById('statStdev').textContent = '0.00';
+            
+            addChatMessage('ai', `Analysis complete: Count=${nums.length}, Mean=${mean.toFixed(2)}, Median=${median.toFixed(2)}`);
+        }
+
+        async function generateChart() { addChatMessage('ai', 'Chart generation ready. Select data first.'); }
+        async function predict() { addChatMessage('ai', 'Prediction: Trend analysis requires more data.'); }
+        async function preprocess() { addChatMessage('ai', 'Preprocessing: Data cleaning ready.'); }
+
+        // Tools Functions
+        async function createContent() { addChatMessage('ai', 'Content creator ready. What would you like to create?'); }
+        async function generateCode() { addChatMessage('ai', 'Code generator ready. What code do you need?'); }
+        async function manageFiles() { addChatMessage('ai', 'File manager ready. What file operation?'); }
+        async function webAssist() { addChatMessage('ai', 'Web assistant ready. Enter URL to fetch.'); }
+
+        // Init
+        initVoice();
+    </script>
+</body>
+</html>

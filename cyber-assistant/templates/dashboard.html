@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Cyber Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0a0a0f; color: #e0e0e0; }
+        .cyber { border: 1px solid #00ff88; box-shadow: 0 0 15px rgba(0,255,136,0.2); }
+        .gradient-text { background: linear-gradient(135deg, #00ff88, #00d4ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto p-8">
+        <header class="text-center mb-10">
+            <h1 class="text-5xl font-bold gradient-text mb-2">CYBER ASSISTANT</h1>
+            <p class="text-gray-400">AI for Cyber Security + Data Science</p>
+            <p class="text-sm text-gray-500">Author: Manojkumar M (B.Tech AI & Data Science)</p>
+        </header>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="cyber rounded-xl p-6 bg-gray-900/80">
+                <h2 class="text-xl font-bold text-green-400 mb-4">Chat</h2>
+                <input type="text" id="input" placeholder="Ask me anything..." 
+                       class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 mb-3 focus:outline-none focus:border-green-500">
+                <button onclick="send()" class="w-full bg-green-600 hover:bg-green-700 py-2 rounded-lg">Send</button>
+                <div id="response" class="mt-4 text-gray-300"></div>
+            </div>
+            
+            <div class="cyber rounded-xl p-6 bg-gray-900/80">
+                <h2 class="text-xl font-bold text-blue-400 mb-4">Status</h2>
+                <div class="space-y-2">
+                    <div class="flex justify-between"><span>API Server</span><span class="text-green-400">Online</span></div>
+                    <div class="flex justify-between"><span>Voice Module</span><span class="text-green-400">Ready</span></div>
+                    <div class="flex justify-between"><span>Data Science</span><span class="text-green-400">Active</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function send() {
+            const msg = document.getElementById('input').value;
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: msg})
+            });
+            const data = await res.json();
+            document.getElementById('response').innerText = data.response;
+        }
+    </script>
+</body>
+</html>

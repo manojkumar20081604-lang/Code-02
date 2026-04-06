@@ -1,0 +1,6 @@
+timestamp,source_ip,threat_type,severity,action
+2026-04-01 10:00:00,192.168.1.100,malware,high,blocked
+2026-04-01 10:05:00,192.168.1.101,phishing,medium,warned
+2026-04-01 10:10:00,192.168.1.102,dos,critical,blocked
+2026-04-01 10:15:00,192.168.1.103,malware,low,detected
+2026-04-01 10:20:00,192.168.1.104,xss,medium,blocked

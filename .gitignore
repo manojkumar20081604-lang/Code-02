@@ -1,0 +1,6 @@
+*.py
+__pycache__/
+*.pyc
+.env
+02-v1/.git
+cyber-assistant/nul
