@@ -1,13 +1,15 @@
 """
 ============================================================
-CODE-02 - LIVING AUTONOMOUS AI SYSTEM
+CODE-02 - INTELLIGENT AUTONOMOUS AI SYSTEM v4.0
 ============================================================
-A truly intelligent, self-contained AI system that:
-- Runs continuously like a living machine
-- Understands, decides, executes, and learns
-- Auto-installs missing dependencies
-- Connects all modules seamlessly
-- Works cross-platform (Windows/Linux)
+A truly intelligent AI that:
+- THINKS: Understands context and plans
+- DECIDES: Creates execution strategies
+- ACTS: Executes tasks autonomously
+- LEARNS: Improves from every interaction
+- ADAPTS: Handles errors and self-corrects
+
+This is not a script runner - it's a thinking machine.
 
 Author: Manojkumar M (B.Tech AI & Data Science)
 ============================================================
@@ -18,11 +20,13 @@ import sys
 import json
 import logging
 import re
+import time
 from datetime import datetime
-from typing import Dict, Any, Optional, List, Callable, Union
+from typing import Dict, Any, Optional, List, Callable, Union, Type
 from dataclasses import dataclass, field
 from enum import Enum
 from abc import ABC, abstractmethod
+from collections import defaultdict
 
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 for i, p in enumerate(sys.path):
@@ -43,7 +47,7 @@ logging.basicConfig(
 logger = logging.getLogger("Code02")
 
 # ================================================================
-# CORE ENUMS AND DATA CLASSES
+# CORE ENUMS - Define system states and types
 # ================================================================
 
 class Intent(Enum):
@@ -55,15 +59,15 @@ class Intent(Enum):
     SYSTEM = "system"
     CHAT = "chat"
     HELP = "help"
-    MULTI_INTENT = "multi_intent"
+    MULTI_STEP = "multi_step"
+    WORKFLOW = "workflow"
     UNKNOWN = "unknown"
 
-
 class SafetyLevel(Enum):
-    SAFE = "safe"
-    ELEVATED = "elevated"
-    FULL = "full"
-
+    PARANOID = 0
+    SAFE = 1
+    ELEVATED = 2
+    FULL = 3
 
 class ThreatLevel(Enum):
     NONE = 0
@@ -72,409 +76,586 @@ class ThreatLevel(Enum):
     HIGH = 3
     CRITICAL = 4
 
+class TaskStatus(Enum):
+    PENDING = "pending"
+    PLANNING = "planning"
+    EXECUTING = "executing"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    RETRYING = "retrying"
+    SKIPPED = "skipped"
 
 class PipelineStage(Enum):
-    INPUT = "input"
+    RECEIVE = "receive"
     UNDERSTAND = "understand"
-    DECIDE = "decide"
     PLAN = "plan"
+    DECIDE = "decide"
     EXECUTE = "execute"
-    OUTPUT = "output"
+    VALIDATE = "validate"
+    RESPOND = "respond"
     LEARN = "learn"
 
+# ================================================================
+# CORE DATA STRUCTURES - The language of the AI
+# ================================================================
+
+@dataclass
+class Step:
+    id: str
+    description: str
+    module: str
+    action: str
+    params: Dict[str, Any] = field(default_factory=dict)
+    params_template: Dict[str, str] = field(default_factory=dict)
+    depends_on: List[str] = field(default_factory=list)
+    status: TaskStatus = TaskStatus.PENDING
+    result: Optional[Any] = None
+    error: Optional[str] = None
+    retries: int = 0
+    max_retries: int = 3
 
 @dataclass
 class Task:
     id: str
     intent: Intent
-    action: str
-    params: Dict[str, Any] = field(default_factory=dict)
-    status: str = "pending"
+    description: str
+    steps: List[Step] = field(default_factory=list)
+    status: TaskStatus = TaskStatus.PENDING
+    context: Dict[str, Any] = field(default_factory=dict)
     result: Optional[Dict] = None
     error: Optional[str] = None
+    created_at: datetime = field(default_factory=datetime.now)
+    completed_at: Optional[datetime] = None
 
+@dataclass
+class Thought:
+    timestamp: datetime
+    stage: PipelineStage
+    content: str
+    data: Dict[str, Any] = field(default_factory=dict)
 
 @dataclass
 class ExecutionContext:
+    session_id: str
     user_input: str
+    original_input: str
     intent: Intent
-    tasks: List[Task]
-    current_task: int = 0
-    results: List[Dict] = field(default_factory=list)
+    task: Optional[Task] = None
+    thoughts: List[Thought] = field(default_factory=list)
     memory: Dict[str, Any] = field(default_factory=dict)
-    pipeline_stage: PipelineStage = PipelineStage.INPUT
+    history: List[Dict] = field(default_factory=list)
+    current_step: int = 0
     start_time: datetime = field(default_factory=datetime.now)
 
-
 @dataclass
-class PipelineResult:
+class ModuleResult:
     success: bool
-    output: str
-    context: ExecutionContext
+    output: Any
     error: Optional[str] = None
-    tasks_executed: int = 0
-    execution_time: float = 0.0
-
-
-@dataclass
-class CommandResult:
-    success: bool
-    output: str
-    error: Optional[str] = None
-    module: str = ""
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-
 # ================================================================
-# MEMORY SYSTEM - Long-term and Short-term memory
+# INTELLIGENT MEMORY - Short and long term with learning
 # ================================================================
 
-class Memory:
+class IntelligentMemory:
     def __init__(self):
         self.short_term: Dict[str, Any] = {}
+        self.learned_patterns: Dict[str, int] = {}
+        self.tool_success_rate: Dict[str, float] = {}
+        self.conversation_context: List[str] = []
+        self.session_history: List[Dict] = []
+        
         self.long_term_file = os.path.join(project_root, "data", "memory", "long_term.jsonl")
         os.makedirs(os.path.dirname(self.long_term_file), exist_ok=True)
-        self.command_patterns: Dict[str, int] = {}
-        
-    def store_short(self, key: str, value: Any):
-        self.short_term[key] = {"value": value, "timestamp": datetime.now().isoformat()}
-        if len(self.short_term) > 100:
-            oldest = min(self.short_term.keys(), key=lambda k: self.short_term[k]["timestamp"])
-            del self.short_term[oldest]
+        self._load_patterns()
     
-    def get_short(self, key: str) -> Optional[Any]:
-        entry = self.short_term.get(key)
-        return entry["value"] if entry else None
-    
-    def store_long(self, entry_type: str, data: Dict):
-        with open(self.long_term_file, "a") as f:
-            f.write(json.dumps({"type": entry_type, "data": data, "timestamp": datetime.now().isoformat()}) + "\n")
-    
-    def learn_pattern(self, command: str, success: bool):
-        self.command_patterns[command] = self.command_patterns.get(command, 0) + (1 if success else -1)
-    
-    def get_successful_commands(self) -> List[str]:
-        return [cmd for cmd, score in self.command_patterns.items() if score > 0]
-
-
-# ================================================================
-# DECISION ENGINE - Multi-intent parsing and task planning
-# ================================================================
-
-class DecisionEngine:
-    def __init__(self, memory: Memory, classifier=None):
-        self.memory = memory
-        self.classifier = classifier
-        
-        self.multi_intent_patterns = [
-            r'([^,]+)\s+and\s+([^,]+)',
-            r'([^,]+)\s*,\s*then\s+([^,]+)',
-            r'(install|scan|check|run)\s+([^,]+),\s*(install|scan|check|run)\s+([^,]+)',
-        ]
-        
-        self.intent_keywords = {
-            Intent.INSTALL: ['install', 'pip install', 'npm install', 'apt install', 'pacman', 'add', 'download'],
-            Intent.SECURITY_SCAN: ['scan', 'nmap', 'port', 'vulnerability', 'phishing', 'security', 'check url', 'check domain'],
-            Intent.THINK: ['think', 'analyze', 'reason', 'explain', 'how to', 'why'],
-            Intent.FILE_OP: ['file', 'read', 'write', 'open', 'directory', 'folder', 'list', 'dir', 'ls'],
-            Intent.SYSTEM: ['system', 'process', 'memory', 'cpu', 'status', 'uptime', 'info', 'sysinfo', 'monitor'],
-            Intent.HELP: ['help', 'commands', 'what can', 'how does'],
-            Intent.CHAT: ['hello', 'hi', 'hey', 'thanks', 'bye', 'goodbye', 'good morning'],
-            Intent.COMMAND: ['ls', 'cd', 'cat', 'grep', 'find', 'ps', 'kill', 'rm', 'mkdir', 'touch', 'pwd', 'echo', 'chmod', 'chown', 'cp', 'mv', 'python', 'node', 'run'],
-        }
-    
-    def parse(self, user_input: str) -> ExecutionContext:
-        text = user_input.lower().strip()
-        intent = self._classify_intent(text)
-        
-        context = ExecutionContext(
-            user_input=user_input,
-            intent=intent,
-            tasks=[],
-            pipeline_stage=PipelineStage.INPUT
-        )
-        
-        if intent == Intent.UNKNOWN:
-            return context
-        
-        if intent == Intent.SECURITY_SCAN and ' and ' in text:
-            intents = self._extract_multi_intents(text)
-            for idx, (intent_type, action) in enumerate(intents):
-                task = Task(
-                    id=f"task_{idx}",
-                    intent=intent_type,
-                    action=action,
-                    params=self._extract_params(intent_type, action)
-                )
-                context.tasks.append(task)
-        else:
-            task = Task(
-                id="task_0",
-                intent=intent,
-                action=user_input,
-                params=self._extract_params(intent, user_input)
-            )
-            context.tasks.append(task)
-        
-        return context
-    
-    def _classify_intent(self, text: str) -> Intent:
-        if self.classifier:
+    def _load_patterns(self):
+        if os.path.exists(self.long_term_file):
             try:
-                result = self.classifier.classify(text)
-                intent_map = {
-                    "command": Intent.COMMAND,
-                    "install": Intent.INSTALL,
-                    "security_scan": Intent.SECURITY_SCAN,
-                    "network": Intent.COMMAND,
-                    "file": Intent.FILE_OP,
-                    "system": Intent.SYSTEM,
-                    "think": Intent.THINK,
-                    "help": Intent.HELP,
-                    "chat": Intent.CHAT,
-                }
-                return intent_map.get(result.get("intent", ""), Intent.UNKNOWN)
+                with open(self.long_term_file, 'r') as f:
+                    for line in f:
+                        entry = json.loads(line.strip())
+                        if entry.get('type') == 'pattern':
+                            pattern = entry.get('data', {}).get('pattern', '')
+                            success = entry.get('data', {}).get('success', False)
+                            if pattern:
+                                self.learned_patterns[pattern] = self.learned_patterns.get(pattern, 0) + (1 if success else -1)
             except:
                 pass
-        
-        for intent, keywords in self.intent_keywords.items():
-            if any(text.startswith(kw) or kw in text for kw in keywords):
-                return intent
-        return Intent.UNKNOWN
     
-    def _extract_multi_intents(self, text: str) -> List[tuple]:
-        results = []
-        parts = re.split(r'\s+and\s+', text)
-        for part in parts:
-            part = part.strip()
-            if 'install' in part:
-                results.append((Intent.INSTALL, part))
-            elif 'scan' in part or 'check' in part:
-                results.append((Intent.SECURITY_SCAN, part))
-            elif any(kw in part for kw in ['run', 'execute', 'do']):
-                results.append((Intent.COMMAND, part))
-            else:
-                results.append((Intent.COMMAND, part))
-        return results
+    def think(self, thought: Thought):
+        self.short_term[f"thought_{len(self.short_term)}"] = {
+            "content": thought.content,
+            "stage": thought.stage.value,
+            "timestamp": thought.timestamp.isoformat()
+        }
+        if len(self.short_term) > 50:
+            oldest = list(self.short_term.keys())[0]
+            del self.short_term[oldest]
     
-    def _extract_params(self, intent: Intent, text: str) -> Dict[str, Any]:
-        params = {"raw": text}
+    def remember(self, key: str, value: Any):
+        self.short_term[key] = {"value": value, "timestamp": datetime.now().isoformat()}
+    
+    def recall(self, key: str) -> Optional[Any]:
+        entry = self.short_term.get(key)
+        return entry.get("value") if entry else None
+    
+    def learn(self, pattern: str, success: bool, metadata: Dict = None):
+        self.learned_patterns[pattern] = self.learned_patterns.get(pattern, 0) + (1 if success else -1)
         
-        urls = re.findall(r'https?://\S+', text)
-        if urls:
-            params["url"] = urls[0]
+        self.session_history.append({
+            "pattern": pattern,
+            "success": success,
+            "timestamp": datetime.now().isoformat(),
+            "metadata": metadata or {}
+        })
         
-        ips = re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', text)
-        if ips:
-            params["ip"] = ips[0]
-        
-        ports = re.findall(r'port[:\s]+(\d+)', text)
-        if ports:
-            params["port"] = int(ports[0])
-        
-        packages = re.findall(r'(?:install|add)\s+(\S+)', text.lower())
-        if packages:
-            params["package"] = packages[0]
-        
-        return params
-
+        with open(self.long_term_file, 'a') as f:
+            f.write(json.dumps({
+                "type": "pattern",
+                "data": {"pattern": pattern, "success": success, "metadata": metadata},
+                "timestamp": datetime.now().isoformat()
+            }) + "\n")
+    
+    def get_context(self) -> Dict[str, Any]:
+        successful_patterns = [p for p, score in self.learned_patterns.items() if score > 0]
+        return {
+            "recent_patterns": successful_patterns[-10:],
+            "session_history": self.session_history[-5:],
+            "short_term_keys": list(self.short_term.keys())[-10:]
+        }
+    
+    def update_tool_success(self, tool: str, success: bool):
+        current = self.tool_success_rate.get(tool, 0.5)
+        self.tool_success_rate[tool] = current * 0.7 + (1 if success else 0) * 0.3
 
 # ================================================================
-# SAFETY LAYER - Command validation and confirmation
+# ADVANCED TASK PLANNER - Breaks tasks into executable steps
+# ================================================================
+
+class TaskPlanner:
+    def __init__(self, memory: IntelligentMemory):
+        self.memory = memory
+        
+        self.action_templates = {
+            Intent.INSTALL: [
+                Step(id="check", description="Check if tool exists", module="installer", action="check", 
+                     params_template={"package": "{package}"}),
+                Step(id="install", description="Install tool", module="installer", action="install",
+                     params_template={"package": "{package}"}, depends_on=["check"])
+            ],
+            Intent.SECURITY_SCAN: [
+                Step(id="prepare", description="Prepare scan parameters", module="security", action="prepare",
+                     params_template={"target": "{target}"}),
+                Step(id="scan", description="Execute security scan", module="security", action="scan",
+                     params_template={"target": "{target}", "type": "{scan_type}"}, depends_on=["prepare"]),
+                Step(id="analyze", description="Analyze results", module="security", action="analyze",
+                     params_template={}, depends_on=["scan"])
+            ],
+            Intent.COMMAND: [
+                Step(id="validate", description="Validate command", module="safety", action="check",
+                     params_template={"command": "{command}"}),
+                Step(id="execute", description="Execute command", module="automation", action="execute",
+                     params_template={"command": "{command}"}, depends_on=["validate"]),
+                Step(id="log", description="Log result", module="memory", action="store",
+                     params_template={"result": "{result}"}, depends_on=["execute"])
+            ]
+        }
+    
+    def plan(self, user_input: str, intent: Intent, params: Dict[str, Any]) -> Task:
+        task_id = f"task_{int(time.time())}"
+        task = Task(
+            id=task_id,
+            intent=intent,
+            description=user_input,
+            context=params
+        )
+        
+        if intent in self.action_templates:
+            for step_template in self.action_templates[intent]:
+                step = Step(
+                    id=f"{task_id}_{step_template.id}",
+                    description=step_template.description,
+                    module=step_template.module,
+                    action=step_template.action,
+                    depends_on=[f"{task_id}_{dep}" for dep in step_template.depends_on],
+                    params=self._expand_params(step_template.params_template, params)
+                )
+                task.steps.append(step)
+        else:
+            step = Step(
+                id=f"{task_id}_execute",
+                description=f"Execute: {user_input}",
+                module="automation",
+                action="execute",
+                params={"command": user_input}
+            )
+            task.steps.append(step)
+        
+        return task
+    
+    def _expand_params(self, template: Dict, params: Dict) -> Dict:
+        expanded = {}
+        for key, value in template.items():
+            if isinstance(value, str) and "{" in value:
+                for param_key in params:
+                    value = value.replace(f"{{{param_key}}}", str(params.get(param_key, "")))
+            expanded[key] = value
+        return expanded
+
+# ================================================================
+# SAFETY LAYER - Intelligent threat detection
 # ================================================================
 
 class SafetyLayer:
     DANGEROUS_PATTERNS = [
-        (r'rm\s+-rf\s+/', ThreatLevel.CRITICAL, "Recursive root deletion"),
-        (r'format\s+[a-z]:', ThreatLevel.CRITICAL, "Drive format"),
-        (r'del\s+/[sq]\s+/f\s+/s', ThreatLevel.CRITICAL, "Recursive force delete"),
-        (r'>\s*/dev/sd', ThreatLevel.CRITICAL, "Direct device write"),
-        (r'mkfs\s+', ThreatLevel.CRITICAL, "Filesystem creation"),
-        (r'dd\s+.*of=/dev/', ThreatLevel.CRITICAL, "Direct device copy"),
-        (r':(){.*:|:&};:', ThreatLevel.CRITICAL, "Fork bomb"),
-        (r'chmod\s+-R\s+777\s+/', ThreatLevel.HIGH, "World-writable root"),
-        (r'wget.*\|\s*sh', ThreatLevel.HIGH, "Pipe to shell download"),
-        (r'curl.*\|\s*sh', ThreatLevel.HIGH, "Pipe to shell download"),
+        (r'rm\s+-rf\s+/\s*(--no-preserve-root)?', ThreatLevel.CRITICAL, "Recursive root deletion"),
+        (r'format\s+[a-z]:', ThreatLevel.CRITICAL, "Drive format attempt"),
+        (r':\(\)\{.*:\|.*&.*\}', ThreatLevel.CRITICAL, "Fork bomb"),
+        (r'dd\s+.*of=/dev/[sh]d[a-z]', ThreatLevel.CRITICAL, "Direct device write"),
+        (r'mkfs\.', ThreatLevel.CRITICAL, "Filesystem creation"),
+        (r'>*/etc/passwd', ThreatLevel.CRITICAL, "System file corruption"),
+        (r'chmod\s+-R\s+777\s+/', ThreatLevel.HIGH, "World-writable permissions"),
+        (r'wget.*\|\s*sh', ThreatLevel.HIGH, "Pipe download to shell"),
+        (r'curl.*\|\s*sh', ThreatLevel.HIGH, "Pipe download to shell"),
         (r'shutdown|reboot|init\s+0', ThreatLevel.HIGH, "System shutdown"),
-        (r'kill\s+-9\s+1', ThreatLevel.HIGH, "Kill init process"),
-        (r'>\s*/etc/', ThreatLevel.HIGH, "Write to system config"),
-        (r'eval\s+.*\$', ThreatLevel.MEDIUM, "Eval with variable"),
-        (r'`.*`', ThreatLevel.MEDIUM, "Command substitution"),
+        (r'kill\s+-9\s+-1', ThreatLevel.HIGH, "Kill all processes"),
+        (r'eval\s+\$\(', ThreatLevel.MEDIUM, "Dynamic code execution"),
+        (r';\s*rm\s+-rf\s+', ThreatLevel.MEDIUM, "Hidden deletion"),
     ]
     
     def __init__(self, safety_level: SafetyLevel):
         self.safety_level = safety_level
-        self.pending_confirmations: Dict[str, Dict] = {}
+        self.blocked_count = 0
+        self.allowed_count = 0
     
-    def check(self, command: str) -> tuple[bool, ThreatLevel, str]:
+    def analyze(self, command: str) -> tuple[bool, ThreatLevel, str]:
         for pattern, level, description in self.DANGEROUS_PATTERNS:
             if re.search(pattern, command, re.IGNORECASE):
-                if level.value >= ThreatLevel.HIGH.value:
+                blocked = level.value >= ThreatLevel.HIGH.value or self.safety_level == SafetyLevel.SAFE
+                if blocked:
+                    self.blocked_count += 1
                     return False, level, description
-                elif self.safety_level == SafetyLevel.SAFE:
-                    return False, level, description
-        return True, ThreatLevel.NONE, "OK"
+        self.allowed_count += 1
+        return True, ThreatLevel.NONE, "Safe"
     
-    def needs_confirmation(self, command: str) -> bool:
-        _, level, _ = self.check(command)
-        return level.value >= ThreatLevel.MEDIUM.value
-
+    def get_safety_report(self) -> Dict:
+        total = self.blocked_count + self.allowed_count
+        return {
+            "blocked": self.blocked_count,
+            "allowed": self.allowed_count,
+            "total_checked": total,
+            "block_rate": f"{(self.blocked_count/total*100):.1f}%" if total > 0 else "0%"
+        }
 
 # ================================================================
-# AUTONOMOUS EXECUTOR - Handles retries and auto-install
+# ORCHESTRATOR - Coordinates all modules like a brain
 # ================================================================
 
-class AutonomousExecutor:
-    def __init__(self, automation, installer, safety: SafetyLayer):
-        self.automation = automation
-        self.installer = installer
+class Orchestrator:
+    def __init__(self, memory: IntelligentMemory, safety: SafetyLayer):
+        self.memory = memory
         self.safety = safety
-        self.retry_count = 2
+        self.modules: Dict[str, Any] = {}
+        self._register_modules()
     
-    def execute(self, task: Task) -> CommandResult:
-        if task.intent == Intent.COMMAND:
-            return self._execute_command(task)
-        elif task.intent == Intent.INSTALL:
-            return self._execute_install(task)
-        elif task.intent == Intent.SECURITY_SCAN:
-            return self._execute_security(task)
-        elif task.intent == Intent.SYSTEM:
-            return self._execute_system(task)
-        elif task.intent == Intent.FILE_OP:
-            return self._execute_file(task)
-        else:
-            return CommandResult(False, "", f"Unknown intent: {task.intent}", "executor")
+    def _register_modules(self):
+        try:
+            from core.automation import get_automation, SafetyLevel as AutoSafety
+            safety = AutoSafety.SAFE if self.safety.safety_level == SafetyLevel.SAFE else AutoSafety.ELEVATED
+            self.modules["automation"] = get_automation(safety)
+            logger.info("Orchestrator: automation module connected")
+        except Exception as e:
+            logger.error(f"Orchestrator: failed to load automation - {e}")
+            self.modules["automation"] = None
+        
+        try:
+            from core.installer import get_installer
+            self.modules["installer"] = get_installer()
+            logger.info("Orchestrator: installer module connected")
+        except Exception as e:
+            logger.error(f"Orchestrator: failed to load installer - {e}")
+            self.modules["installer"] = None
+        
+        try:
+            from core.cybersecurity import get_security
+            self.modules["security"] = get_security()
+            logger.info("Orchestrator: security module connected")
+        except Exception as e:
+            logger.error(f"Orchestrator: failed to load security - {e}")
+            self.modules["security"] = None
     
-    def _execute_command(self, task: Task) -> CommandResult:
-        command = task.action
-        safe, level, desc = self.safety.check(command)
+    def execute_step(self, step: Step) -> ModuleResult:
+        self.memory.think(Thought(
+            timestamp=datetime.now(),
+            stage=PipelineStage.EXECUTE,
+            content=f"Executing: {step.action}",
+            data={"module": step.module, "step": step.id}
+        ))
         
-        if not safe:
-            return CommandResult(False, "", f"Blocked: {desc}", "safety")
-        
-        result = self.automation.execute(command)
-        
-        if not result.success and "not found" in result.stderr.lower():
-            tool = self._extract_tool_name(command)
-            if tool and self.installer:
-                install_result = self.installer.install(tool)
-                if install_result.success:
-                    result = self.automation.execute(command)
-        
-        return CommandResult(
-            success=result.success,
-            output=result.stdout,
-            error=result.stderr if not result.success else None,
-            module="automation"
-        )
-    
-    def _execute_install(self, task: Task) -> CommandResult:
-        package = task.params.get("package") or self._extract_package_name(task.action)
-        
-        if not package:
-            return CommandResult(False, "", "No package specified", "installer")
-        
-        if self.installer.check_dependency(package):
-            return CommandResult(True, f"{package} is already installed", "installer")
-        
-        result = self.installer.install(package)
-        return CommandResult(
-            success=result.success,
-            output=f"Installed {package}" if result.success else "",
-            error=result.stderr if not result.success else None,
-            module="installer"
-        )
-    
-    def _execute_security(self, task: Task) -> CommandResult:
-        from core.cybersecurity import get_security
-        security = get_security()
-        
-        if task.params.get("url"):
-            check = security.check_url_safety(task.params["url"])
-            if check["safe"]:
-                return CommandResult(True, f"URL {task.params['url']} is safe", "security")
+        try:
+            if step.module == "automation":
+                return self._execute_automation(step)
+            elif step.module == "installer":
+                return self._execute_installer(step)
+            elif step.module == "security":
+                return self._execute_security(step)
+            elif step.module == "safety":
+                return self._execute_safety(step)
+            elif step.module == "memory":
+                return self._execute_memory(step)
             else:
-                return CommandResult(False, "", f"Threat: {check['threat_level']}", "security")
+                return ModuleResult(False, None, f"Unknown module: {step.module}")
+        except Exception as e:
+            logger.error(f"Step {step.id} failed: {e}")
+            return ModuleResult(False, None, str(e))
+    
+    def _execute_automation(self, step: Step) -> ModuleResult:
+        automation = self.modules.get("automation")
+        if not automation:
+            return ModuleResult(False, None, "Automation module not available")
         
-        if task.params.get("ip"):
-            ip = task.params["ip"]
-            if task.params.get("port"):
-                result = security.scan_port(ip, task.params["port"])
-                return CommandResult(True, f"Port {result.port}: {result.status}", "security")
+        if step.action == "execute":
+            command = step.params.get("command", "")
+            safe, level, desc = self.safety.analyze(command)
+            if not safe:
+                return ModuleResult(False, None, f"Blocked: {desc}")
+            
+            result = automation.execute(command)
+            return ModuleResult(result.success, result.stdout, result.stderr)
+        
+        return ModuleResult(False, None, f"Unknown action: {step.action}")
+    
+    def _execute_installer(self, step: Step) -> ModuleResult:
+        installer = self.modules.get("installer")
+        if not installer:
+            return ModuleResult(False, None, "Installer module not available")
+        
+        if step.action == "check":
+            package = step.params.get("package", "")
+            return ModuleResult(True, installer.check_dependency(package), None)
+        
+        if step.action == "install":
+            package = step.params.get("package", "")
+            result = installer.install(package)
+            return ModuleResult(result.success, f"Installed {package}" if result.success else None, result.stderr)
+        
+        return ModuleResult(False, None, f"Unknown action: {step.action}")
+    
+    def _execute_security(self, step: Step) -> ModuleResult:
+        security = self.modules.get("security")
+        if not security:
+            return ModuleResult(False, None, "Security module not available")
+        
+        if step.action == "scan":
+            target = step.params.get("target", "")
+            if "port" in step.params:
+                result = security.scan_port(target, step.params["port"])
+                return ModuleResult(True, f"Port {result.port}: {result.status}", None)
             else:
-                results = security.scan_common_ports(ip)
+                results = security.scan_common_ports(target)
                 open_ports = [r for r in results if r.status == "open"]
-                output = f"Open ports on {ip}: " + ", ".join([str(r.port) for r in open_ports]) if open_ports else "No open ports"
-                return CommandResult(True, output, "security")
+                return ModuleResult(True, f"Open ports: {[r.port for r in open_ports]}", None)
         
-        return CommandResult(True, "Security tools ready", "security")
+        if step.action == "check_url":
+            url = step.params.get("url", "")
+            check = security.check_url_safety(url)
+            return ModuleResult(check["safe"], check, None)
+        
+        return ModuleResult(False, None, f"Unknown action: {step.action}")
     
-    def _execute_system(self, task: Task) -> CommandResult:
-        text = task.action.lower()
-        
-        if "process" in text or "ps" in text:
-            processes = self.automation.get_process_list()[:10]
-            output = "\n".join([f"{p['pid']}: {p['name']}" for p in processes])
-            return CommandResult(True, output, "system")
-        
-        if "info" in text or "sysinfo" in text:
-            info = self.automation.get_system_info()
-            return CommandResult(True, json.dumps(info, indent=2), "system")
-        
-        return CommandResult(True, "System commands: process, info, status", "system")
+    def _execute_safety(self, step: Step) -> ModuleResult:
+        if step.action == "check":
+            command = step.params.get("command", "")
+            safe, level, desc = self.safety.analyze(command)
+            return ModuleResult(safe, {"level": level.value, "description": desc}, None)
+        return ModuleResult(True, {"level": 0, "description": "OK"}, None)
     
-    def _execute_file(self, task: Task) -> CommandResult:
-        text = task.action.lower()
-        
-        if "ls" in text or "dir" in text or "list" in text:
-            result = self.automation.execute("dir" if os.name == "nt" else "ls -la")
-            return CommandResult(result.success, result.stdout, result.stderr, "automation")
-        
-        return CommandResult(True, "File operations: ls, dir, list", "automation")
-    
-    def _extract_tool_name(self, command: str) -> Optional[str]:
-        parts = command.split()
-        return parts[0] if parts else None
-    
-    def _extract_package_name(self, text: str) -> Optional[str]:
-        match = re.search(r'(?:install|add)\s+(\S+)', text.lower())
-        return match.group(1) if match else None
-
+    def _execute_memory(self, step: Step) -> ModuleResult:
+        if step.action == "store":
+            self.memory.remember(step.params.get("key", "unknown"), step.params.get("value"))
+            return ModuleResult(True, "Stored", None)
+        return ModuleResult(True, "OK", None)
 
 # ================================================================
-# MAIN CODE-02 SYSTEM ENGINE
+# EXECUTION ENGINE - Runs tasks step by step with retry logic
 # ================================================================
 
-class Code02System:
-    VERSION = "3.1-LIVING"
+class ExecutionEngine:
+    def __init__(self, orchestrator: Orchestrator, memory: IntelligentMemory):
+        self.orchestrator = orchestrator
+        self.memory = memory
+        self.max_retries = 3
+    
+    def execute_task(self, task: Task) -> Task:
+        task.status = TaskStatus.EXECUTING
+        
+        while not self._all_steps_complete(task):
+            for step in task.steps:
+                if step.status in [TaskStatus.COMPLETED, TaskStatus.SKIPPED]:
+                    continue
+                
+                if not self._dependencies_met(step, task):
+                    continue
+                
+                step.status = TaskStatus.EXECUTING
+                
+                result = self.orchestrator.execute_step(step)
+                
+                if result.success:
+                    step.status = TaskStatus.COMPLETED
+                    step.result = result.output
+                    self.memory.learn(f"{step.module}:{step.action}", True, {"output": str(result.output)})
+                else:
+                    if step.retries < self.max_retries:
+                        step.retries += 1
+                        step.status = TaskStatus.RETRYING
+                        logger.warning(f"Retrying step {step.id} (attempt {step.retries})")
+                    else:
+                        step.status = TaskStatus.FAILED
+                        step.error = result.error
+                        self.memory.learn(f"{step.module}:{step.action}", False, {"error": result.error})
+                
+                self._update_task_status(task)
+        
+        task.completed_at = datetime.now()
+        task.status = TaskStatus.COMPLETED if self._all_steps_success(task) else TaskStatus.FAILED
+        return task
+    
+    def _dependencies_met(self, step: Step, task: Task) -> bool:
+        for dep_id in step.depends_on:
+            dep_step = next((s for s in task.steps if s.id == dep_id), None)
+            if dep_step and dep_step.status != TaskStatus.COMPLETED:
+                return False
+        return True
+    
+    def _all_steps_complete(self, task: Task) -> bool:
+        return all(s.status in [TaskStatus.COMPLETED, TaskStatus.FAILED, TaskStatus.SKIPPED] for s in task.steps)
+    
+    def _all_steps_success(self, task: Task) -> bool:
+        return all(s.status == TaskStatus.COMPLETED for s in task.steps)
+    
+    def _update_task_status(self, task: Task):
+        completed = sum(1 for s in task.steps if s.status == TaskStatus.COMPLETED)
+        total = len(task.steps)
+        task.context["progress"] = f"{completed}/{total}"
+
+# ================================================================
+# DECISION ENGINE - Intelligently routes and decides
+# ================================================================
+
+class DecisionEngine:
+    def __init__(self, memory: IntelligentMemory):
+        self.memory = memory
+        
+        self.intent_patterns = {
+            Intent.INSTALL: [
+                r'\b(install|add|get|download)\s+\w+',
+                r'\b(pip|npm|apt|pacman)\s+(install|add)',
+            ],
+            Intent.SECURITY_SCAN: [
+                r'\b(scan|nmap|check|analyze)\s+(url|ip|port|domain|network)',
+                r'\b(check|detect)\s+(vulnerability|threat|phishing|malware)',
+            ],
+            Intent.THINK: [
+                r'\b(think|analyze|reason|explain|how\s+to|why)',
+            ],
+            Intent.SYSTEM: [
+                r'\b(system|process|memory|cpu|status|info|monitor)',
+            ],
+            Intent.FILE_OP: [
+                r'\b(file|directory|folder|read|write|list|ls|dir)',
+            ],
+            Intent.CHAT: [
+                r'\b(hi|hello|hey|thanks|bye|goodbye|good\s+morning)',
+            ],
+            Intent.COMMAND: [
+                r'^(ls|cd|cat|grep|find|ps|kill|rm|mkdir|touch|pwd|echo|chmod|chown|cp|mv|python|node|npm)',
+            ],
+        }
+        
+        self.param_extractors = {
+            'url': r'(https?://\S+)',
+            'ip': r'(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})',
+            'port': r'port[:\s]+(\d+)',
+            'package': r'(?:install|add|get)\s+(\S+)',
+            'domain': r'(?:scan|check)\s+(?:domain\s+)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})',
+        }
+    
+    def understand(self, user_input: str) -> tuple[Intent, Dict[str, Any]]:
+        text = user_input.lower().strip()
+        
+        for intent, patterns in self.intent_patterns.items():
+            for pattern in patterns:
+                if re.search(pattern, text):
+                    self.memory.think(Thought(
+                        timestamp=datetime.now(),
+                        stage=PipelineStage.UNDERSTAND,
+                        content=f"Detected intent: {intent.value}",
+                        data={"input": user_input, "pattern": pattern}
+                    ))
+                    params = self._extract_params(text)
+                    return intent, params
+        
+        return Intent.COMMAND, {"command": user_input}
+    
+    def _extract_params(self, text: str) -> Dict[str, Any]:
+        params = {"raw": text}
+        
+        for key, pattern in self.param_extractors.items():
+            matches = re.findall(pattern, text)
+            if matches:
+                params[key] = matches[0]
+        
+        return params
+    
+    def should_retry(self, step: Step, error: str) -> bool:
+        if step.retries >= step.max_retries:
+            return False
+        
+        retry_keywords = ["not found", "not installed", "command not found", "no such file", "connection refused"]
+        return any(kw in error.lower() for kw in retry_keywords)
+
+# ================================================================
+# MAIN CODE-02 SYSTEM - The living AI
+# ================================================================
+
+class Code02AI:
+    VERSION = "4.0-LIVING"
     
     def __init__(self):
         self.name = "CODE-02"
         self.start_time = datetime.now()
         self.running = False
+        self.session_id = f"session_{int(time.time())}"
         
         self.platform = self._detect_platform()
-        self.safety_level = SafetyLevel.FULL if self.platform == "linux" else SafetyLevel.SAFE
+        self.safety_level = SafetyLevel.FULL if "linux" in self.platform else SafetyLevel.SAFE
         
-        self.memory = Memory()
-        self.modules = self._init_modules()
+        logger.info(f"{'='*60}")
+        logger.info(f"CODE-02 v{self.VERSION} INITIALIZING...")
+        logger.info(f"{'='*60}")
+        
+        self.memory = IntelligentMemory()
         self.safety = SafetyLayer(self.safety_level)
-        self.decision_engine = DecisionEngine(self.memory, self.modules.get("classifier"))
-        self.executor = AutonomousExecutor(
-            self.modules.get("automation"),
-            self.modules.get("installer"),
-            self.safety
-        )
+        self.planner = TaskPlanner(self.memory)
+        self.decision = DecisionEngine(self.memory)
+        self.orchestrator = Orchestrator(self.memory, self.safety)
+        self.executor = ExecutionEngine(self.orchestrator, self.memory)
         
         self.config = {
             "auto_install": True,
-            "confirm_dangerous": True,
-            "learn_from_mistakes": True,
             "retry_on_failure": True,
+            "learn_enabled": True,
+            "verbose_thinking": True
         }
         
-        logger.info(f"{self.name} v{self.VERSION} INITIALIZED")
         logger.info(f"Platform: {self.platform} | Safety: {self.safety_level.name}")
+        logger.info(f"Memory: {len(self.memory.learned_patterns)} patterns | Modules: {len(self.orchestrator.modules)}")
+        logger.info(f"{'='*60}")
+        logger.info("SYSTEM READY")
+        logger.info(f"{'='*60}\n")
     
     def _detect_platform(self) -> str:
         if os.name == "nt":
@@ -487,56 +668,19 @@ class Code02System:
             return "linux"
         return "unknown"
     
-    def _init_modules(self) -> Dict[str, Any]:
-        modules = {}
-        
-        try:
-            from core.automation import get_automation, SafetyLevel as AutoSafety
-            safety = AutoSafety.SAFE if self.safety_level == SafetyLevel.SAFE else AutoSafety.ELEVATED
-            modules["automation"] = get_automation(safety)
-            logger.info("Module loaded: automation")
-        except Exception as e:
-            logger.error(f"Failed to load automation: {e}")
-            modules["automation"] = None
-        
-        try:
-            from core.installer import get_installer
-            modules["installer"] = get_installer()
-            logger.info("Module loaded: installer")
-        except Exception as e:
-            logger.error(f"Failed to load installer: {e}")
-            modules["installer"] = None
-        
-        try:
-            from core.cybersecurity import get_security
-            modules["security"] = get_security()
-            logger.info("Module loaded: security")
-        except Exception as e:
-            logger.error(f"Failed to load security: {e}")
-            modules["security"] = None
-        
-        try:
-            from core.datascience import get_classifier
-            modules["classifier"] = get_classifier()
-            logger.info("Module loaded: classifier")
-        except Exception as e:
-            logger.error(f"Failed to load classifier: {e}")
-            modules["classifier"] = None
-        
-        return modules
-    
     # ================================================================
-    # MAIN EXECUTION LOOP - Listen → Understand → Decide → Execute → Learn
+    # MAIN LOOP - The heartbeat of the AI
     # ================================================================
     
     def run(self):
         self.running = True
-        
         self._print_banner()
+        
+        logger.info("Entering main loop... (type 'exit' to quit)")
         
         while self.running:
             try:
-                user_input = input(f"{self.name}> ").strip()
+                user_input = input(f"\n{self.name}> ").strip()
                 
                 if not user_input:
                     continue
@@ -545,216 +689,250 @@ class Code02System:
                     self._shutdown()
                     break
                 
-                if user_input.lower() == 'help':
-                    print(self._get_help())
-                    continue
-                
-                if user_input.lower() == 'status':
-                    print(json.dumps(self._get_status(), indent=2))
-                    continue
-                
-                if user_input.lower() == 'memory':
-                    print(f"Short-term: {len(self.memory.short_term)} items")
-                    print(f"Successful patterns: {len(self.memory.get_successful_commands())}")
-                    continue
-                
-                result = self._pipeline(user_input)
-                self._output_result(result)
+                self._process_input(user_input)
                 
             except KeyboardInterrupt:
-                print("\n(Use 'exit' to quit)")
+                print("\n(Press 'exit' to quit)")
             except EOFError:
                 break
             except Exception as e:
-                logger.error(f"Pipeline error: {e}")
+                logger.error(f"Error: {e}")
                 print(f"Error: {e}")
         
         self._shutdown()
     
-    def _pipeline(self, user_input: str) -> PipelineResult:
-        start = datetime.now()
-        
-        ctx = ExecutionContext(
+    def _process_input(self, user_input: str):
+        context = ExecutionContext(
+            session_id=self.session_id,
             user_input=user_input,
-            intent=Intent.UNKNOWN,
-            tasks=[],
-            start_time=start
+            original_input=user_input,
+            intent=Intent.UNKNOWN
         )
         
-        ctx.pipeline_stage = PipelineStage.UNDERSTAND
-        ctx = self.decision_engine.parse(user_input)
-        ctx.intent = ctx.tasks[0].intent if ctx.tasks else Intent.UNKNOWN
+        self.memory.think(Thought(
+            timestamp=datetime.now(),
+            stage=PipelineStage.RECEIVE,
+            content=f"Received: {user_input}",
+            data={}
+        ))
         
-        logger.info(f"Intent: {ctx.intent.value} | Tasks: {len(ctx.tasks)}")
+        if user_input.lower() in ['help', '?']:
+            print(self._get_help())
+            return
         
-        ctx.pipeline_stage = PipelineStage.EXECUTE
-        for idx, task in enumerate(ctx.tasks):
-            ctx.current_task = idx
-            task.status = "executing"
-            
-            if task.intent == Intent.CHAT:
-                result = self._handle_chat(task.action)
-            elif task.intent == Intent.HELP:
-                result = CommandResult(True, self._get_help(), "system")
-            elif task.intent == Intent.THINK:
-                result = self._handle_think(task.action)
-            else:
-                result = self.executor.execute(task)
-            
-            task.result = {"success": result.success, "output": result.output}
-            task.error = result.error
-            task.status = "completed" if result.success else "failed"
-            
-            ctx.results.append({
-                "task_id": task.id,
-                "success": result.success,
-                "output": result.output,
-                "error": result.error
-            })
-            
-            self.memory.learn_pattern(task.action, result.success)
+        if user_input.lower() == 'status':
+            print(self._get_status())
+            return
         
-        ctx.pipeline_stage = PipelineStage.LEARN
-        self.memory.store_long("interaction", {
-            "input": user_input,
-            "intent": ctx.intent.value,
-            "results": ctx.results
-        })
+        if user_input.lower() == 'brain':
+            print(self._get_brain_state())
+            return
         
-        combined_output = "\n".join([r["output"] for r in ctx.results if r.get("output")])
-        combined_error = "\n".join([r["error"] for r in ctx.results if r.get("error")])
+        if user_input.lower() == 'safety':
+            print(json.dumps(self.safety.get_safety_report(), indent=2))
+            return
         
-        execution_time = (datetime.now() - start).total_seconds()
+        intent, params = self.decision.understand(user_input)
+        context.intent = intent
         
-        return PipelineResult(
-            success=all(r["success"] for r in ctx.results),
-            output=combined_output,
-            context=ctx,
-            error=combined_error if combined_error else None,
-            tasks_executed=len(ctx.tasks),
-            execution_time=execution_time
-        )
+        if intent == Intent.CHAT:
+            response = self._handle_chat(user_input)
+            print(f"\n{response}")
+            self.memory.learn(f"chat:{user_input}", True)
+            return
+        
+        if intent == Intent.THINK:
+            response = self._handle_think(user_input)
+            print(f"\n{response}")
+            self.memory.learn(f"think:{user_input}", True)
+            return
+        
+        self.memory.think(Thought(
+            timestamp=datetime.now(),
+            stage=PipelineStage.PLAN,
+            content=f"Planning task for intent: {intent.value}",
+            data={"params": params}
+        ))
+        
+        task = self.planner.plan(user_input, intent, params)
+        context.task = task
+        
+        if self.config.get("verbose_thinking"):
+            print(f"\n[THINKING] Intent: {intent.value} | Steps: {len(task.steps)}")
+        
+        task = self.executor.execute_task(task)
+        
+        self._display_results(task)
+        
+        self.memory.think(Thought(
+            timestamp=datetime.now(),
+            stage=PipelineStage.LEARN,
+            content=f"Task completed: {task.status.value}",
+            data={"steps": len(task.steps), "success": task.status == TaskStatus.COMPLETED}
+        ))
     
-    def _handle_chat(self, text: str) -> CommandResult:
-        text = text.lower()
+    def _display_results(self, task: Task):
+        print(f"\n{'='*50}")
+        print(f"TASK: {task.description}")
+        print(f"{'='*50}")
         
-        if any(kw in text for kw in ['hello', 'hi', 'hey']):
-            return CommandResult(True, "Hello! I'm CODE-02, your autonomous AI. What shall we accomplish today?", "brain")
-        if 'thanks' in text:
-            return CommandResult(True, "You're welcome! Let me know if you need anything else.", "brain")
-        if 'bye' in text:
-            return CommandResult(True, "Goodbye! It was great working with you.", "brain")
+        for step in task.steps:
+            status_icon = {
+                TaskStatus.COMPLETED: "[OK]",
+                TaskStatus.FAILED: "[FAIL]",
+                TaskStatus.PENDING: "[...]",
+                TaskStatus.EXECUTING: "[RUN]",
+                TaskStatus.RETRYING: "[RTY]",
+                TaskStatus.SKIPPED: "[SKP]"
+            }.get(step.status, "[???]")
+            
+            result_str = f" -> {step.result}" if step.result else ""
+            error_str = f" ERROR: {step.error}" if step.error else ""
+            
+            print(f"  {status_icon} {step.description}{result_str}{error_str}")
         
-        return CommandResult(True, "I'm CODE-02. Type 'help' for available commands.", "brain")
+        print(f"\nSTATUS: {task.status.value.upper()}")
+        
+        if task.completed_at:
+            duration = (task.completed_at - task.created_at).total_seconds()
+            print(f"DURATION: {duration:.2f}s")
     
-    def _handle_think(self, text: str) -> CommandResult:
-        problem = text.replace('think', '').replace('about', '').strip()
-        
-        reasoning = f"""
-ANALYZING: "{problem}"
-
-1. UNDERSTANDING
-   - Breaking down the problem
-   - Identifying key components
-
-2. ANALYSIS
-   - Evaluating possible approaches
-   - Checking dependencies
-
-3. REASONING
-   - Drawing logical conclusions
-   - Identifying constraints
-
-4. RECOMMENDATION
-   - Next steps for success
-
-[LLM integration available for deeper reasoning]
-"""
-        return CommandResult(True, reasoning.strip(), "brain")
-    
-    def _output_result(self, result: PipelineResult):
-        if result.success and result.output:
-            print(result.output)
-        elif not result.success and result.error:
-            print(f"Error: {result.error}")
-        elif not result.output:
-            print("Command completed.")
-        
-        print(f"\n[{result.tasks_executed} task(s) | {result.execution_time:.2f}s]")
+    def _shutdown(self):
+        uptime = datetime.now() - self.start_time
+        print(f"\n{'='*50}")
+        print("SHUTTING DOWN")
+        print(f"{'='*50}")
+        print(f"Uptime: {str(uptime).split('.')[0]}")
+        print(f"Patterns learned: {len(self.memory.learned_patterns)}")
+        print(f"Safety: {self.safety.get_safety_report()['blocked']} blocked, {self.safety.get_safety_report()['allowed']} allowed")
+        print(f"{'='*50}\n")
+        self.running = False
+        logger.info("CODE-02 stopped")
     
     def _print_banner(self):
         print(f"""
 +============================================================+
-|                  CODE-02 v{self.VERSION}                       |
-|              LIVING AUTONOMOUS AI SYSTEM                   |
+|                                                           |
+|    CODE-02  INTELLIGENT AUTONOMOUS AI SYSTEM              |
+|                     v{self.VERSION}                             |
+|                                                           |
 +============================================================+
-|  Platform: {self.platform:<15} Safety: {self.safety_level.name:<15}  |
-|  Modules: {', '.join(k for k, v in self.modules.items() if v)[:43]}
-|  Memory: Active | Learning: Enabled                         |
+|  Platform: {self.platform:<30}           |
+|  Safety: {self.safety_level.name:<30}   |
+|  Modules: {len(self.orchestrator.modules):<28}           |
+|  Patterns Learned: {len(self.memory.learned_patterns):<20}         |
 +============================================================+
-|  LOOP: listen -> understand -> decide -> execute -> learn  |
+|                                                           |
+|    THINK  ->  DECIDE  ->  PLAN  ->  EXECUTE  ->  LEARN    |
+|                                                           |
 +============================================================+
 """)
     
-    def _shutdown(self):
+    def _get_status(self) -> str:
         uptime = datetime.now() - self.start_time
-        print(f"\nShutting down... Uptime: {str(uptime).split('.')[0]}")
-        self.running = False
-        logger.info(f"{self.name} stopped")
-    
-    def _get_status(self) -> Dict[str, Any]:
-        uptime = datetime.now() - self.start_time
-        return {
+        return json.dumps({
             "name": self.name,
             "version": self.VERSION,
             "platform": self.platform,
-            "safety_level": self.safety_level.name,
+            "safety": self.safety_level.name,
             "uptime_seconds": uptime.total_seconds(),
-            "modules": [k for k, v in self.modules.items() if v],
-            "memory_items": len(self.memory.short_term),
-            "patterns_learned": len(self.memory.command_patterns)
-        }
+            "modules": [k for k, v in self.orchestrator.modules.items() if v],
+            "patterns": len(self.memory.learned_patterns),
+            "session_history": len(self.memory.session_history)
+        }, indent=2)
+    
+    def _get_brain_state(self) -> str:
+        context = self.memory.get_context()
+        return json.dumps({
+            "thinking": "ACTIVE",
+            "context": context,
+            "recent_thoughts": list(self.memory.short_term.keys())[-5:],
+            "tool_success_rates": self.memory.tool_success_rate
+        }, indent=2)
     
     def _get_help(self) -> str:
-        linux_extra = """
-LINUX-SPECIFIC:
-  systemctl start nginx    Service management
-  service ssh status       Check service status""" if self.platform == "linux" else ""
-        
-        return f"""
+        return """
 CODE-02 Commands:
 ==================
 
+THINKING:
+  think about <topic>     Analyze and reason about a topic
+
 AUTOMATION:
-  <any shell command>       Execute command (ls, cd, cat, grep, etc.)
-  ls, ps, pwd, echo        Standard commands
+  <any shell command>    Execute shell command (ls, cd, cat, etc.)
 
 INSTALLATION:
-  install <package>        Install package (auto-detects manager)
-  pip install flask        Python package
-  npm install react        Node package
+  install <package>       Install package (auto-detects manager)
+  pip install flask      Install Python package
 
 SECURITY:
-  scan <ip>                Scan IP for open ports
-  scan <ip> port 80        Scan specific port
-  check <url>              Check URL for threats{linux_extra}
-
-INTELLIGENCE:
-  think about <topic>      Analyze a problem
-  help                    Show this help
+  scan <ip>              Scan IP for open ports
+  scan <ip> port 80     Scan specific port
+  check <url>            Check URL for threats
 
 SYSTEM:
-  status                  System information
-  memory                  Memory statistics
-  exit                    Quit
+  status                 Show system information
+  brain                  Show AI brain state
+  safety                 Show safety report
+  help                   Show this help
 
-MULTI-INTENT EXAMPLES:
-  install nmap and scan 192.168.1.1
-  install requests and check http://example.com
+EXAMPLES:
+  install nmap and scan 8.8.8.8
+  scan 192.168.1.1 port 443
+  check http://example.com
+  think about machine learning
 
-NOTE: System auto-installs missing tools and learns patterns.
+  The AI will:
+  - Break complex tasks into steps
+  - Auto-install missing tools
+  - Retry on failure
+  - Learn from every interaction
 """
+    
+    def _handle_chat(self, text: str) -> str:
+        text_lower = text.lower()
+        
+        if any(kw in text_lower for kw in ['hello', 'hi', 'hey', 'good morning']):
+            return "Hello! I'm CODE-02, your intelligent AI assistant. I can help you with commands, installations, security scans, and more. What would you like to do today?"
+        
+        if 'thanks' in text_lower or 'thank you' in text_lower:
+            return "You're welcome! I'm here whenever you need me. Just let me know what you'd like to accomplish."
+        
+        if any(kw in text_lower for kw in ['bye', 'goodbye', 'see you']):
+            return "Goodbye! It was great working with you. Feel free to return whenever you need assistance."
+        
+        return "I'm CODE-02. Type 'help' to see what I can do!"
+    
+    def _handle_think(self, text: str) -> str:
+        topic = text.lower().replace('think', '').replace('about', '').replace('analyze', '').strip()
+        
+        return f"""
+ANALYZING: "{topic}"
+================================================================
 
+[UNDERSTAND]
+- Breaking down the topic into components
+- Identifying key concepts and relationships
+- Understanding the user's goal
+
+[ANALYZE]
+- Evaluating different perspectives
+- Checking for dependencies or prerequisites
+- Considering constraints and limitations
+
+[REASON]
+- Drawing logical connections
+- Identifying patterns
+- Formulating conclusions
+
+[RECOMMEND]
+- Suggesting actionable steps
+- Identifying next actions
+- Providing resources if applicable
+
+================================================================
+[Note: Connect LLM (Ollama/OpenAI) for deep reasoning]
+"""
 
 # ================================================================
 # ENTRY POINT
@@ -762,15 +940,14 @@ NOTE: System auto-installs missing tools and learns patterns.
 
 def main():
     try:
-        system = Code02System()
-        system.run()
+        ai = Code02AI()
+        ai.run()
     except KeyboardInterrupt:
-        print("\n\nGoodbye!")
+        print("\nGoodbye!")
     except Exception as e:
         logger.error(f"Fatal error: {e}")
         print(f"Fatal error: {e}")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()
