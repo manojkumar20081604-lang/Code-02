@@ -59,6 +59,7 @@ class Intent(Enum):
     SYSTEM = "system"
     CHAT = "chat"
     HELP = "help"
+    CODE_GENERATION = "code_generation"
     MULTI_STEP = "multi_step"
     WORKFLOW = "workflow"
     UNKNOWN = "unknown"
@@ -570,6 +571,11 @@ class DecisionEngine:
             Intent.CHAT: [
                 r'\b(hi|hello|hey|thanks|bye|goodbye|good\s+morning)',
             ],
+            Intent.CODE_GENERATION: [
+                r'\b(create|make|build|generate|write)\s+(a\s+)?(login|register|signup|form|page|app|website|script|function|class)',
+                r'\b(create|make|build)\s+\w+\s+(file|page|app|code)',
+                r'\b(show|write|create)\s+me\s+(a\s+)?(login|simple|basic)',
+            ],
             Intent.COMMAND: [
                 r'^(ls|cd|cat|grep|find|ps|kill|rm|mkdir|touch|pwd|echo|chmod|chown|cp|mv|python|node|npm)',
             ],
@@ -745,6 +751,11 @@ class Code02AI:
             response = self._handle_think(user_input)
             print(f"\n{response}")
             self.memory.learn(f"think:{user_input}", True)
+            return
+        
+        if intent == Intent.CODE_GENERATION:
+            response = self._handle_code_generation(user_input)
+            print(response)
             return
         
         self.memory.think(Thought(
@@ -932,6 +943,298 @@ ANALYZING: "{topic}"
 
 ================================================================
 [Note: Connect LLM (Ollama/OpenAI) for deep reasoning]
+"""
+
+    def _handle_code_generation(self, user_input: str) -> str:
+        text_lower = user_input.lower()
+        
+        if 'login' in text_lower and 'page' in text_lower:
+            return self._create_login_page()
+        
+        if 'register' in text_lower or 'signup' in text_lower:
+            return self._create_register_page()
+        
+        if 'simple' in text_lower or 'basic' in text_lower:
+            if 'app' in text_lower:
+                return self._create_simple_app()
+        
+        return f"I understand you want to create something. Could you be more specific?\n\nFor example:\n  - create a login page\n  - create a register form\n  - create a simple app"
+    
+    def _create_login_page(self) -> str:
+        login_html = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 350px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #5a6fd6;
+        }
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .register-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Login</h2>
+        <form action="/login" method="POST">
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required placeholder="Enter your email">
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required placeholder="Enter your password">
+            </div>
+            <button type="submit">Login</button>
+        </form>
+        <div class="register-link">
+            <a href="/register">Don't have an account? Register</a>
+        </div>
+    </div>
+</body>
+</html>'''
+        
+        filepath = os.path.join(project_root, "login.html")
+        with open(filepath, 'w') as f:
+            f.write(login_html)
+        
+        return f"""
+CREATED: login.html
+
+The login page has been created at:
+  {filepath}
+
+FEATURES:
+  - Modern gradient background
+  - Email and password fields
+  - Responsive design
+  - Login button with hover effect
+  - Link to registration page
+
+TO USE:
+  Open the file in any web browser or serve it with a web server.
+
+Preview the file with:
+  python -m http.server 8000
+  Then visit http://localhost:8000/login.html
+"""
+    
+    def _create_register_page(self) -> str:
+        register_html = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .register-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 400px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #11998e;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0e8a7c;
+        }
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <h2>Create Account</h2>
+        <form action="/register" method="POST">
+            <div class="input-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <div class="input-group">
+                <label for="confirm">Confirm Password</label>
+                <input type="password" id="confirm" name="confirm" required>
+            </div>
+            <button type="submit">Register</button>
+        </form>
+    </div>
+</body>
+</html>'''
+        
+        filepath = os.path.join(project_root, "register.html")
+        with open(filepath, 'w') as f:
+            f.write(register_html)
+        
+        return f"""
+CREATED: register.html
+
+The registration page has been created at:
+  {filepath}
+
+FEATURES:
+  - Username, email, password fields
+  - Password confirmation
+  - Green gradient theme
+
+TO USE:
+  Open the file in any web browser.
+"""
+    
+    def _create_simple_app(self) -> str:
+        app_py = '''"""
+Simple Flask Application
+Generated by CODE-02
+"""
+
+from flask import Flask, render_template, request, redirect, url_for
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return '<h1>Welcome to CODE-02 App!</h1><a href="/login">Login</a>'
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        # Add your authentication logic here
+        return f'Login attempted for: {email}'
+    return \'\'\'<!DOCTYPE html>
+<html>
+<head><title>Login</title></head>
+<body>
+    <h2>Login</h2>
+    <form method="POST">
+        <input type="email" name="email" placeholder="Email" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <button type="submit">Login</button>
+    </form>
+</body>
+</html>\'\'\'
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+'''
+        
+        filepath = os.path.join(project_root, "app.py")
+        with open(filepath, 'w') as f:
+            f.write(app_py)
+        
+        return f"""
+CREATED: app.py
+
+A simple Flask application has been created at:
+  {filepath}
+
+FEATURES:
+  - Home page
+  - Login route with POST handling
+  - Debug mode enabled
+
+TO USE:
+  1. pip install flask
+  2. python app.py
+  3. Visit http://localhost:5000
 """
 
 # ================================================================
