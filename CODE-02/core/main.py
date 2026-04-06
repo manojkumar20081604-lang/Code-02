@@ -1,531 +1,821 @@
 """
 ============================================================
-CODE-02 MAIN ORCHESTRATOR
+CODE-02 MAIN SYSTEM - Complete AI Controller
 ============================================================
-Central controller that ties all modules together
+A unified, autonomous AI system that:
+- Runs continuously
+- Understands commands intelligently
+- Routes tasks correctly
+- Executes actions automatically
+- Installs dependencies when needed
+- Works on Windows and Linux
+
+Author: Manojkumar M (B.Tech AI & Data Science)
+============================================================
 """
 
 import asyncio
-import os
-import sys
-import json
 import logging
+import sys
+import os
+import json
+
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for i, p in enumerate(sys.path):
+    if 'CODE-02\\core' in p or p.endswith('CODE-02/core'):
+        sys.path.pop(i)
+        break
+sys.path[0:0] = [project_root]
+
+try:
+    import readline  # Unix only
+except ImportError:
+    pass  # Windows doesn't have readline
 from datetime import datetime
-from typing import Dict, List, Any, Optional
-from dataclasses import dataclass
+from typing import Dict, Any, Optional, List, Callable
+from dataclasses import dataclass, field
+from enum import Enum
 
-# Import all modules
-from core import get_code02 as get_base_code02
-from core.environment.manager import get_env_manager, EnvironmentManager
-from core.llm import create_llm_brain, get_llm_brain, LLMBrain
-from core.database import get_enhanced_memory, EnhancedMemory
-from core.automation import get_automation_engine, AutomationEngine, ExecutionMode
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger("Code02Main")
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("Code02")
+# ================================================================
+# ENUMS AND DATACLASSES
+# ================================================================
+
+class Intent(Enum):
+    COMMAND = "command"
+    INSTALL = "install"
+    SECURITY_SCAN = "security_scan"
+    THINK = "think"
+    FILE_OP = "file_operation"
+    SYSTEM = "system"
+    CHAT = "chat"
+    HELP = "help"
+    UNKNOWN = "unknown"
+
+
+class Module(Enum):
+    AUTOMATION = "automation"
+    INSTALLER = "installer"
+    SECURITY = "security"
+    BRAIN = "brain"
+    MEMORY = "memory"
+
+
+class SafetyLevel(Enum):
+    SAFE = "safe"
+    ELEVATED = "elevated"
+    FULL = "full"
 
 
 @dataclass
-class ModuleStatus:
-    name: str
-    status: str  # online, offline, error
-    last_update: str
-    info: Dict = None
+class CommandResult:
+    success: bool
+    output: str
+    error: Optional[str] = None
+    module: str = ""
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass
-class SystemEvent:
-    type: str  # startup, shutdown, error, task_complete, etc.
-    source: str
-    data: Dict
-    timestamp: str
+# ================================================================
+# MAIN CODE-02 SYSTEM
+# ================================================================
 
-
-class Code02OS:
+class Code02System:
     """
-    Code-02 Autonomous AI Operating System
-    Main orchestrator that coordinates all modules
+    CODE-02 - Unified Autonomous AI System
+    
+    Continuous loop: listen → understand → decide → execute → learn
     """
     
     def __init__(self):
+        self.name = "CODE-02"
+        self.version = "3.0"
+        self.running = False
         self.start_time = datetime.now()
-        self.version = "2.0.0"
         
-        # Core modules
-        self.llm: Optional[LLMBrain] = None
-        self.memory: Optional[EnhancedMemory] = None
-        self.automation: Optional[AutomationEngine] = None
-        self.env_manager: Optional[EnvironmentManager] = None
+        # Platform detection
+        self.platform = self._detect_platform()
         
-        # Module status
-        self.modules: Dict[str, ModuleStatus] = {}
+        # Safety level based on platform
+        self.safety_level = SafetyLevel.FULL if self.platform == "linux" else SafetyLevel.SAFE
         
-        # Event handlers
-        self.event_handlers: Dict[str, List] = {}
+        # Initialize all modules
+        self.modules = self._init_modules()
+        
+        # Context and memory
+        self.context: Dict[str, Any] = {}
+        self.conversation_history: List[Dict] = []
+        self.command_history: List[Dict] = []
         
         # Configuration
-        self.config = self._load_config()
-        
-        # Running state
-        self.running = False
-        self.background_tasks: List[asyncio.Task] = []
-        
-        logger.info(f"Code-02 OS v{self.version} initializing...")
-    
-    def _load_config(self) -> Dict:
-        """Load configuration"""
-        config_path = os.path.join("data", "config", "code02.json")
-        
-        default_config = {
-            "llm": {
-                "provider": "auto",  # auto, ollama, openai, anthropic, mock
-                "model": "llama3.2",
-                "temperature": 0.7,
-                "max_tokens": 2048
-            },
-            "automation": {
-                "mode": "safe",  # safe, standard, advanced, dangerous
-                "timeout": 60,
-                "max_history": 100
-            },
-            "memory": {
-                "data_dir": "data/memory",
-                "auto_cleanup_days": 30,
-                "min_importance": 0.3
-            },
-            "environment": {
-                "auto_install": True,
-                "allowed_managers": ["pip", "npm", "pacman", "apt", "dnf"]
-            },
-            "modules": {
-                "automation": True,
-                "security": True,
-                "monitor": True,
-                "filesystem": True
-            }
+        self.config = {
+            "auto_install": True,
+            "confirm_dangerous": True,
+            "log_level": "INFO"
         }
         
-        if os.path.exists(config_path):
-            try:
-                with open(config_path, "r") as f:
-                    user_config = json.load(f)
-                    # Merge with defaults
-                    for key in default_config:
-                        if key in user_config:
-                            default_config[key].update(user_config[key])
-            except:
-                pass
+        # Register command handlers
+        self.handlers: Dict[Intent, Callable] = {
+            Intent.COMMAND: self._handle_command,
+            Intent.INSTALL: self._handle_install,
+            Intent.SECURITY_SCAN: self._handle_security,
+            Intent.THINK: self._handle_think,
+            Intent.FILE_OP: self._handle_file,
+            Intent.SYSTEM: self._handle_system,
+            Intent.CHAT: self._handle_chat,
+            Intent.HELP: self._handle_help,
+            Intent.UNKNOWN: self._handle_unknown,
+        }
         
-        return default_config
+        logger.info(f"{self.name} v{self.version} initialized")
+        logger.info(f"Platform: {self.platform} | Safety: {self.safety_level.name}")
     
-    def _save_config(self):
-        """Save configuration"""
-        config_path = os.path.join("data", "config", "code02.json")
-        os.makedirs(os.path.dirname(config_path), exist_ok=True)
-        
-        with open(config_path, "w") as f:
-            json.dump(self.config, f, indent=2)
+    # ============================================================
+    # INITIALIZATION
+    # ============================================================
     
-    async def initialize(self) -> bool:
-        """Initialize all modules"""
-        logger.info("Initializing Code-02 OS modules...")
+    def _detect_platform(self) -> str:
+        """Detect current platform"""
+        if os.name == "nt":
+            return "windows"
+        elif os.name == "posix":
+            if os.path.exists("/etc/arch-release"):
+                return "linux-arch"
+            elif os.path.exists("/etc/debian_version"):
+                return "linux-debian"
+            else:
+                return "linux"
+        return "unknown"
+    
+    def _init_modules(self) -> Dict[str, Any]:
+        """Initialize all system modules"""
+        modules = {}
         
-        success = True
-        
-        # Initialize LLM Brain
+        # Import and initialize modules
         try:
-            self.llm = create_llm_brain(
-                provider=self.config["llm"]["provider"],
-                model=self.config["llm"]["model"]
-            )
-            await self.llm.initialize()
-            self._update_module_status("llm", "online")
-            logger.info(f"LLM Brain initialized ({self.llm.provider.value})")
+            from core.automation import get_automation, SafetyLevel as AutoSafety
+            
+            safety = AutoSafety.SAFE
+            if self.safety_level == SafetyLevel.FULL:
+                safety = AutoSafety.ELEVATED
+            elif self.safety_level == SafetyLevel.SAFE:
+                safety = AutoSafety.SAFE
+            
+            modules["automation"] = get_automation(safety)
+            logger.info("Module loaded: automation")
         except Exception as e:
-            logger.error(f"LLM initialization failed: {e}")
-            self._update_module_status("llm", "error", {"error": str(e)})
-            success = False
+            logger.error(f"Failed to load automation: {e}")
+            modules["automation"] = None
         
-        # Initialize Memory
         try:
-            self.memory = get_enhanced_memory()
-            self._update_module_status("memory", "online", self.memory.get_stats())
-            logger.info("Enhanced Memory initialized")
+            from core.installer import get_installer
+            modules["installer"] = get_installer()
+            logger.info("Module loaded: installer")
         except Exception as e:
-            logger.error(f"Memory initialization failed: {e}")
-            self._update_module_status("memory", "error", {"error": str(e)})
-            success = False
+            logger.error(f"Failed to load installer: {e}")
+            modules["installer"] = None
         
-        # Initialize Automation Engine
         try:
-            mode = ExecutionMode(self.config["automation"]["mode"])
-            self.automation = get_automation_engine(mode)
-            self._update_module_status("automation", "online", 
-                                       self.automation.get_capabilities())
-            logger.info(f"Automation Engine initialized ({mode.value})")
+            from core.cybersecurity import get_security
+            modules["security"] = get_security()
+            logger.info("Module loaded: security")
         except Exception as e:
-            logger.error(f"Automation initialization failed: {e}")
-            self._update_module_status("automation", "error", {"error": str(e)})
-            success = False
+            logger.error(f"Failed to load security: {e}")
+            modules["security"] = None
         
-        # Initialize Environment Manager
         try:
-            self.env_manager = get_env_manager()
-            self._update_module_status("environment", "online",
-                                       await self.env_manager.get_system_info())
-            logger.info("Environment Manager initialized")
+            from core.datascience import get_router
+            modules["router"] = get_router()
+            logger.info("Module loaded: router")
         except Exception as e:
-            logger.error(f"Environment initialization failed: {e}")
-            self._update_module_status("environment", "error", {"error": str(e)})
+            logger.error(f"Failed to load router: {e}")
+            modules["router"] = None
+        
+        try:
+            from core.datascience import get_classifier
+            modules["classifier"] = get_classifier()
+            logger.info("Module loaded: classifier")
+        except Exception as e:
+            logger.error(f"Failed to load classifier: {e}")
+            modules["classifier"] = None
+        
+        return modules
+    
+    # ============================================================
+    # MAIN LOOP
+    # ============================================================
+    
+    def run(self):
+        """Main execution loop"""
         
         self.running = True
-        self._emit_event("startup", "system", {"success": success})
         
-        return success
-    
-    def _update_module_status(self, name: str, status: str, info: Dict = None):
-        """Update module status"""
-        self.modules[name] = ModuleStatus(
-            name=name,
-            status=status,
-            last_update=datetime.now().isoformat(),
-            info=info or {}
-        )
-    
-    def _emit_event(self, event_type: str, source: str, data: Dict):
-        """Emit system event"""
-        event = SystemEvent(
-            type=event_type,
-            source=source,
-            data=data,
-            timestamp=datetime.now().isoformat()
-        )
+        print("\n" + "=" * 60)
+        print(f"  {self.name} v{self.version} - Autonomous AI System")
+        print("=" * 60)
+        print(f"  Platform: {self.platform}")
+        print(f"  Safety Level: {self.safety_level.name}")
+        print(f"  Modules: {', '.join(k for k, v in self.modules.items() if v)}")
+        print("=" * 60)
+        print("\nType 'help' for commands, 'exit' to quit.\n")
         
-        # Store in memory
-        if self.memory:
-            self.memory.store(
-                f"event_{event_type}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
-                json.dumps(data),
-                entry_type="event",
-                tags=[event_type, source]
-            )
+        logger.info(f"{self.name} started")
         
-        # Call handlers
-        if event_type in self.event_handlers:
-            for handler in self.event_handlers[event_type]:
-                try:
-                    handler(event)
-                except:
-                    pass
-    
-    def on_event(self, event_type: str, handler):
-        """Register event handler"""
-        if event_type not in self.event_handlers:
-            self.event_handlers[event_type] = []
-        self.event_handlers[event_type].append(handler)
-    
-    async def process(self, user_input: str) -> Dict[str, Any]:
-        """Process user input through the AI system"""
-        
-        # Store in memory
-        if self.memory:
-            self.memory.store_conversation("user", user_input)
-        
-        # Use LLM for reasoning
-        if self.llm and self.llm.provider != "none":
-            response = await self.llm.generate(user_input)
-            
-            # Store response
-            if self.memory:
-                self.memory.store_conversation("assistant", response.text)
-            
-            return {
-                "success": True,
-                "response": response.text,
-                "model": response.model,
-                "latency_ms": response.latency_ms
-            }
-        else:
-            # Fallback to base Code-02
-            base = get_base_code02()
-            result = await base.process(user_input)
-            return {
-                "success": result["success"],
-                "response": result["response"],
-                "model": "code02-base"
-            }
-    
-    async def execute_task(self, task: str, mode: str = None) -> Dict[str, Any]:
-        """Execute a task using automation engine"""
-        
-        if mode:
-            self.automation.set_mode(ExecutionMode(mode))
-        
-        result = await self.automation.execute(task, name=task[:50])
-        
-        # Learn from result
-        if self.memory:
-            self.memory.learn_from_action(
-                task,
-                result.status.value == "completed",
-                result.stdout,
-                result.stderr
-            )
-        
-        return {
-            "task_id": result.id,
-            "status": result.status.value,
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-            "exit_code": result.exit_code
-        }
-    
-    async def execute_workflow(self, workflow_def: Dict) -> Dict[str, Any]:
-        """Execute a multi-step workflow"""
-        
-        workflow = self.automation.create_workflow(
-            workflow_def.get("name", "Workflow"),
-            workflow_def.get("steps", [])
-        )
-        
-        result = await self.automation.execute_workflow(workflow)
-        
-        return {
-            "workflow_id": result.id,
-            "status": result.status.value,
-            "results": result.results
-        }
-    
-    async def install_dependency(self, package: str) -> Dict[str, Any]:
-        """Install a dependency"""
-        
-        if self.config["environment"]["auto_install"]:
-            result = await self.env_manager.install(package)
-            
-            # Store in memory
-            if self.memory:
-                self.memory.store(
-                    f"installed_{package}",
-                    json.dumps({"success": result.success, "output": result.output}),
-                    entry_type="action",
-                    tags=["installed", "dependency"]
-                )
-            
-            return {
-                "success": result.success,
-                "package": result.package,
-                "manager": result.manager,
-                "output": result.output,
-                "error": result.error
-            }
-        else:
-            return {
-                "success": False,
-                "error": "Auto-install is disabled"
-            }
-    
-    async def check_and_fix_environment(self) -> Dict[str, Any]:
-        """Check and fix environment issues"""
-        
-        issues_found = []
-        fixes_applied = []
-        
-        # Get required packages
-        required = self.env_manager.get_required_packages()
-        
-        # Check each
-        missing = await self.env_manager.check_dependencies(required)
-        
-        for pkg, installed in missing.items():
-            if not installed:
-                issues_found.append(pkg)
+        while self.running:
+            try:
+                # Get user input
+                user_input = input(f"{self.name}> ").strip()
                 
-                if self.config["environment"]["auto_install"]:
-                    result = await self.env_manager.install(pkg)
-                    if result.success:
-                        fixes_applied.append(pkg)
+                # Handle empty input
+                if not user_input:
+                    continue
+                
+                # Handle exit commands
+                if user_input.lower() in ['exit', 'quit', 'bye']:
+                    print("Shutting down...")
+                    break
+                
+                # Handle special commands
+                if user_input.lower() == 'help':
+                    print(self._get_help_text())
+                    continue
+                
+                if user_input.lower() == 'status':
+                    print(json.dumps(self._get_status(), indent=2))
+                    continue
+                
+                if user_input.lower() == 'history':
+                    self._show_history()
+                    continue
+                
+                if user_input.lower() == 'platform':
+                    print(f"Platform: {self.platform}")
+                    print(f"Safety: {self.safety_level.name}")
+                    continue
+                
+                # Process input through AI pipeline
+                result = self._process(user_input)
+                
+                # Output result
+                if result.success:
+                    if result.output:
+                        print(result.output)
+                else:
+                    print(f"Error: {result.error}")
+                
+                # Log to history
+                self._log_interaction(user_input, result)
+                
+            except KeyboardInterrupt:
+                print("\n(Use 'exit' to quit)")
+                continue
+            except EOFError:
+                break
+            except Exception as e:
+                logger.error(f"Error in main loop: {e}")
+                print(f"Error: {e}")
         
-        return {
-            "issues_found": issues_found,
-            "fixes_applied": fixes_applied,
-            "auto_install_enabled": self.config["environment"]["auto_install"]
-        }
+        self.running = False
+        logger.info(f"{self.name} stopped")
     
-    def get_system_status(self) -> Dict[str, Any]:
-        """Get overall system status"""
+    # ============================================================
+    # PROCESSING PIPELINE
+    # ============================================================
+    
+    def _process(self, user_input: str) -> CommandResult:
+        """
+        Main processing pipeline:
+        1. Understand (classify intent)
+        2. Decide (route to module)
+        3. Execute (run action)
+        4. Learn (store result)
+        """
+        
+        logger.info(f"Processing: {user_input[:50]}...")
+        
+        # Step 1: Understand - Classify intent
+        intent = self._classify_intent(user_input)
+        logger.info(f"Intent: {intent.name}")
+        
+        # Step 2: Execute based on intent
+        handler = self.handlers.get(intent, self._handle_unknown)
+        
+        try:
+            result = handler(user_input)
+            
+            # Step 3: Learn - Store in context
+            self.context["last_result"] = result
+            self.context["last_intent"] = intent.name
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Execution error: {e}")
+            return CommandResult(
+                success=False,
+                output="",
+                error=str(e),
+                module="system"
+            )
+    
+    def _classify_intent(self, user_input: str) -> Intent:
+        """Classify user intent using ML classifier or rules"""
+        
+        text = user_input.lower().strip()
+        
+        # Use ML classifier if available
+        if self.modules.get("classifier"):
+            try:
+                result = self.modules["classifier"].classify(user_input)
+                intent_str = result.get("intent", "unknown")
+                
+                # Map classifier intents to our intents
+                intent_map = {
+                    "command": Intent.COMMAND,
+                    "install": Intent.INSTALL,
+                    "security_scan": Intent.SECURITY_SCAN,
+                    "network": Intent.COMMAND,
+                    "file": Intent.FILE_OP,
+                    "system": Intent.SYSTEM,
+                    "think": Intent.THINK,
+                    "help": Intent.HELP,
+                    "chat": Intent.CHAT,
+                }
+                
+                return intent_map.get(intent_str, Intent.UNKNOWN)
+            except Exception as e:
+                logger.warning(f"Classifier error: {e}")
+        
+        # Fallback to rule-based classification
+        if any(text.startswith(cmd) for cmd in ['ls', 'cd', 'cat', 'grep', 'find', 'ps', 'kill', 'rm', 'mkdir', 'touch', 'pwd', 'echo', 'chmod', 'chown', 'cp', 'mv']):
+            return Intent.COMMAND
+        
+        if any(text.startswith(cmd) for cmd in ['install', 'pip install', 'npm install', 'apt install', 'pacman']):
+            return Intent.INSTALL
+        
+        if any(kw in text for kw in ['scan', 'nmap', 'port', 'vulnerability', 'phishing', 'security']):
+            return Intent.SECURITY_SCAN
+        
+        if any(kw in text for kw in ['think', 'analyze', 'reason', 'explain']):
+            return Intent.THINK
+        
+        if any(kw in text for kw in ['file', 'read', 'write', 'open', 'directory']):
+            return Intent.FILE_OP
+        
+        if any(kw in text for kw in ['system', 'process', 'memory', 'cpu', 'status', 'uptime']):
+            return Intent.SYSTEM
+        
+        if any(kw in text for kw in ['help', 'how to', 'what can']):
+            return Intent.HELP
+        
+        if any(kw in text for kw in ['hello', 'hi', 'hey', 'thanks', 'bye']):
+            return Intent.CHAT
+        
+        return Intent.UNKNOWN
+    
+    # ============================================================
+    # INTENT HANDLERS
+    # ============================================================
+    
+    def _handle_command(self, user_input: str) -> CommandResult:
+        """Handle shell commands"""
+        
+        # Check for multi-part commands
+        if " and " in user_input.lower():
+            # Split compound commands
+            parts = user_input.lower().split(" and ")
+            outputs = []
+            
+            for part in parts:
+                result = self._execute_single_command(part.strip())
+                outputs.append(result)
+            
+            combined_output = "\n".join([o.output for o in outputs if o.success])
+            combined_error = "\n".join([o.error for o in outputs if o.error])
+            
+            return CommandResult(
+                success=all(o.success for o in outputs),
+                output=combined_output,
+                error=combined_error if combined_error else None,
+                module="automation"
+            )
+        
+        return self._execute_single_command(user_input)
+    
+    def _execute_single_command(self, command: str) -> CommandResult:
+        """Execute a single command"""
+        
+        automation = self.modules.get("automation")
+        if not automation:
+            return CommandResult(False, "", "Automation module not loaded", "automation")
+        
+        # Check command safety
+        security = self.modules.get("security")
+        if security:
+            safety_check = security.check_command_safety(command)
+            
+            if safety_check.threat_level.value >= 3:  # HIGH or CRITICAL
+                return CommandResult(
+                    success=False,
+                    output="",
+                    error=f"Dangerous command blocked: {safety_check.indicators[0] if safety_check.indicators else 'Unknown'}",
+                    module="security"
+                )
+        
+        # Execute command
+        result = automation.execute(command)
+        
+        return CommandResult(
+            success=result.success,
+            output=result.stdout,
+            error=result.stderr if not result.success else None,
+            module="automation",
+            metadata={"exit_code": result.exit_code}
+        )
+    
+    def _handle_install(self, user_input: str) -> CommandResult:
+        """Handle package installation with auto-detection"""
+        
+        installer = self.modules.get("installer")
+        if not installer:
+            return CommandResult(False, "", "Installer module not loaded", "installer")
+        
+        # Extract package name
+        package = self._extract_package_name(user_input)
+        
+        if not package:
+            return CommandResult(False, "", "No package specified", "installer")
+        
+        # Check if already installed
+        if installer.check_dependency(package):
+            return CommandResult(
+                success=True,
+                output=f"{package} is already installed",
+                module="installer"
+            )
+        
+        # Install package
+        result = installer.install(package)
+        
+        if result.success:
+            return CommandResult(
+                success=True,
+                output=f"Successfully installed {package} using {result.manager}",
+                module="installer"
+            )
+        else:
+            return CommandResult(
+                success=False,
+                output="",
+                error=f"Failed to install {package}: {result.stderr}",
+                module="installer"
+            )
+    
+    def _handle_security(self, user_input: str) -> CommandResult:
+        """Handle security operations"""
+        
+        security = self.modules.get("security")
+        if not security:
+            return CommandResult(False, "", "Security module not loaded", "security")
+        
+        text = user_input.lower()
+        
+        # URL check
+        if "url" in text or "http" in text:
+            import re
+            urls = re.findall(r'https?://\S+', user_input)
+            
+            if urls:
+                url = urls[0]
+                check = security.check_url_safety(url)
+                
+                if check["safe"]:
+                    return CommandResult(
+                        success=True,
+                        output=f"URL {url} appears safe (Threat Level: {check['threat_level']})",
+                        module="security"
+                    )
+                else:
+                    return CommandResult(
+                        success=False,
+                        output="",
+                        error=f"Threat detected! Level: {check['threat_level']}\nIndicators: {', '.join(check['indicators'])}",
+                        module="security"
+                    )
+        
+        # IP/Port scan
+        if "scan" in text or "port" in text:
+            import re
+            
+            # Extract IP
+            ips = re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}', user_input)
+            
+            if ips:
+                ip = ips[0]
+                
+                # Extract port if present
+                ports = re.findall(r'port[:\s]+(\d+)', text)
+                
+                if ports:
+                    port = int(ports[0])
+                    result = security.scan_port(ip, port)
+                    
+                    return CommandResult(
+                        success=True,
+                        output=f"Port {port} on {ip}: {result.status.upper()} ({result.service})",
+                        module="security"
+                    )
+                else:
+                    # Scan common ports
+                    results = security.scan_common_ports(ip)
+                    open_ports = [r for r in results if r.status == "open"]
+                    
+                    if open_ports:
+                        output = f"Open ports on {ip}:\n"
+                        output += "\n".join([f"  {r.port}/tcp - {r.service}" for r in open_ports])
+                        return CommandResult(True, output, module="security")
+                    else:
+                        return CommandResult(True, f"No open ports found on {ip}", module="security")
+        
+        return CommandResult(True, "Security tools ready. Try 'scan <ip>' or 'check <url>'", module="security")
+    
+    def _handle_think(self, user_input: str) -> CommandResult:
+        """Handle thinking/reasoning requests"""
+        
+        problem = user_input.replace("think", "").replace("about", "").strip()
+        
+        if not problem:
+            return CommandResult(True, "What would you like me to think about?", module="brain")
+        
+        # Simple reasoning (placeholder for LLM)
+        reasoning = f"""
+Analyzing: "{problem}"
+
+Step 1: Understanding the Goal
+- Break down the problem into components
+- Identify key factors
+
+Step 2: Analysis
+- Consider possible approaches
+- Evaluate constraints
+
+Step 3: Reasoning
+- Draw logical conclusions
+- Identify dependencies
+
+Step 4: Recommendation
+- Suggest actionable next steps
+
+[Connect LLM (Ollama/OpenAI) for advanced reasoning]
+"""
+        
+        return CommandResult(True, reasoning.strip(), module="brain")
+    
+    def _handle_file(self, user_input: str) -> CommandResult:
+        """Handle file operations"""
+        
+        automation = self.modules.get("automation")
+        if not automation:
+            return CommandResult(False, "", "Automation module not loaded", "automation")
+        
+        text = user_input.lower()
+        
+        # Read file
+        if "read" in text or "show" in text or "cat" in text:
+            import re
+            paths = re.findall(r'(?:file|/)[^\s]+', user_input)
+            
+            if paths:
+                path = paths[0].strip()
+                content = automation.read_file(path)
+                
+                if "Error" not in content:
+                    return CommandResult(True, content[:1000], module="automation")
+                else:
+                    return CommandResult(False, "", content, module="automation")
+        
+        # List directory
+        if "list" in text or "dir" in text or "ls" in text:
+            result = automation.execute("ls -la")
+            return CommandResult(result.success, result.stdout, result.stderr, "automation")
+        
+        return CommandResult(True, "File operations: read <path>, ls, list <dir>", module="automation")
+    
+    def _handle_system(self, user_input: str) -> CommandResult:
+        """Handle system operations"""
+        
+        text = user_input.lower()
+        
+        if "status" in text:
+            return CommandResult(
+                success=True,
+                output=json.dumps(self._get_status(), indent=2),
+                module="system"
+            )
+        
+        if "uptime" in text:
+            uptime = datetime.now() - self.start_time
+            return CommandResult(
+                success=True,
+                output=f"System uptime: {str(uptime).split('.')[0]}",
+                module="system"
+            )
+        
+        if "process" in text or "ps" in text:
+            automation = self.modules.get("automation")
+            if automation:
+                processes = automation.get_process_list()[:10]
+                output = "Running processes:\n"
+                output += "\n".join([f"  {p['pid']}: {p['name']}" for p in processes])
+                return CommandResult(True, output, module="automation")
+        
+        if "info" in text or "sysinfo" in text:
+            automation = self.modules.get("automation")
+            if automation:
+                info = automation.get_system_info()
+                return CommandResult(True, json.dumps(info, indent=2), module="automation")
+        
+        return CommandResult(True, "System commands: status, uptime, process, info", module="system")
+    
+    def _handle_chat(self, user_input: str) -> CommandResult:
+        """Handle casual conversation"""
+        
+        text = user_input.lower()
+        
+        responses = {
+            "hello": "Hello! I'm CODE-02, your autonomous AI assistant. How can I help you today?",
+            "hi": "Hi there! I'm CODE-02. Ready to assist with commands, installations, or security tasks.",
+            "hey": "Hey! What can I do for you?",
+            "thanks": "You're welcome! Let me know if you need anything else.",
+            "bye": "Goodbye! It was great chatting with you.",
+        }
+        
+        for key, response in responses.items():
+            if key in text:
+                return CommandResult(True, response, module="brain")
+        
+        return CommandResult(True, "I'm CODE-02, your AI assistant. Type 'help' for available commands.", module="brain")
+    
+    def _handle_help(self, user_input: str) -> CommandResult:
+        """Handle help requests"""
+        return CommandResult(True, self._get_help_text(), module="system")
+    
+    def _handle_unknown(self, user_input: str) -> CommandResult:
+        """Handle unknown commands"""
+        return CommandResult(
+            True,
+            f"I understand '{user_input}', but I'm not sure how to help with that.\n"
+            f"Type 'help' for available commands.",
+            module="brain"
+        )
+    
+    # ============================================================
+    # UTILITY METHODS
+    # ============================================================
+    
+    def _extract_package_name(self, text: str) -> Optional[str]:
+        """Extract package name from install command"""
+        
+        import re
+        
+        # Match patterns like "install <package>" or "pip install <package>"
+        patterns = [
+            r'(?:install|add)\s+(\S+)',
+            r'(pip|npm|apt|pacman)\s+(?:install\s+)?(\S+)',
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, text.lower())
+            if match:
+                # Return second group if present (for "pip install pkg")
+                return match.group(2) if match.lastindex == 2 else match.group(1)
+        
+        return None
+    
+    def _get_status(self) -> Dict[str, Any]:
+        """Get system status"""
         
         uptime = datetime.now() - self.start_time
         
         return {
+            "name": self.name,
             "version": self.version,
-            "running": self.running,
+            "platform": self.platform,
+            "safety_level": self.safety_level.name,
             "uptime_seconds": uptime.total_seconds(),
-            "uptime_str": str(uptime).split('.')[0],
-            "modules": {
-                name: {
-                    "status": m.status,
-                    "last_update": m.last_update,
-                    "info": m.info
-                }
-                for name, m in self.modules.items()
-            },
-            "memory_stats": self.memory.get_stats() if self.memory else {},
-            "config": self.config
+            "modules_loaded": [k for k, v in self.modules.items() if v],
+            "commands_executed": len(self.command_history),
+            "conversations": len(self.conversation_history)
         }
     
-    async def think(self, problem: str) -> Dict[str, Any]:
-        """Deep thinking about a problem"""
+    def _get_help_text(self) -> str:
+        """Get help text"""
         
-        if self.llm:
-            return await self.llm.think(problem)
-        else:
-            return {
-                "problem": problem,
-                "error": "LLM not available"
-            }
+        linux_extra = """
+LINUX-SPECIFIC:
+  systemctl <svc> start|stop|restart   Manage services
+  service <name> status              Check service status
+""" if self.platform.startswith("linux") else ""
+        
+        return f"""
+CODE-02 Commands:
+====================
+
+AUTOMATION:
+  <shell command>              Execute a shell command
+  ls, cd, cat, grep          Standard commands
+  mkdir, touch, rm            File operations
+
+INSTALLATION:
+  install <package>            Install a package
+  pip install flask           Install Python package
+  npm install react           Install Node package
+
+SECURITY:
+  scan <ip>                   Scan IP for open ports
+  scan <ip> port <n>         Scan specific port
+  check <url>                  Check URL for threats{linux_extra}
+
+SYSTEM:
+  status                      System status
+  uptime                      System uptime
+  process                     List processes
+  info                        System information
+
+INTELLIGENCE:
+  think <problem>            Analyze a problem
+  help                       Show this help
+
+EXAMPLES:
+  install nmap
+  scan 192.168.1.1
+  check http://example.com
+  think about building a web scraper
+"""
     
-    async def shutdown(self):
-        """Shutdown the system gracefully"""
-        logger.info("Shutting down Code-02 OS...")
+    def _show_history(self):
+        """Show command history"""
         
-        self.running = False
+        if not self.command_history:
+            print("No commands in history.")
+            return
         
-        # Cancel background tasks
-        for task in self.background_tasks:
-            task.cancel()
+        print(f"\nLast {min(10, len(self.command_history))} commands:")
+        print("-" * 50)
         
-        # Close memory
-        if self.memory:
-            self.memory.close()
-        
-        self._emit_event("shutdown", "system", {"graceful": True})
-        
-        logger.info("Code-02 OS shutdown complete")
+        for i, entry in enumerate(self.command_history[-10:], 1):
+            status = "OK" if entry["success"] else "FAIL"
+            print(f"{i}. [{status}] {entry['command'][:50]}")
     
-    def get_logs(self, limit: int = 100) -> List[Dict]:
-        """Get system logs"""
+    def _log_interaction(self, user_input: str, result: CommandResult):
+        """Log interaction to history"""
         
-        if self.memory:
-            events = self.memory.search("event_", limit=limit)
-            return [
-                {
-                    "id": e.get("id"),
-                    "content": e.get("content"),
-                    "timestamp": e.get("created_at")
-                }
-                for e in events
-            ]
+        self.conversation_history.append({
+            "timestamp": datetime.now().isoformat(),
+            "input": user_input,
+            "success": result.success,
+            "module": result.module
+        })
         
-        return []
+        self.command_history.append({
+            "timestamp": datetime.now().isoformat(),
+            "command": user_input,
+            "success": result.success,
+            "module": result.module,
+            "output_length": len(result.output)
+        })
+        
+        # Keep history manageable
+        if len(self.command_history) > 100:
+            self.command_history = self.command_history[-100:]
 
 
-# Singleton
-_code02_os: Optional[Code02OS] = None
+# ================================================================
+# MAIN ENTRY POINT
+# ================================================================
 
-def get_code02_os() -> Code02OS:
-    global _code02_os
-    if _code02_os is None:
-        _code02_os = Code02OS()
-    return _code02_os
-
-
-async def main():
+def main():
     """Main entry point"""
     
-    print("=" * 60)
-    print("CODE: 02 - Autonomous AI Operating System")
-    print("=" * 60)
-    print()
-    
-    os_instance = get_code02_os()
-    
-    # Initialize
-    success = await os_instance.initialize()
-    
-    if not success:
-        print("Warning: Some modules failed to initialize")
-    
-    print()
-    print("System Status:")
-    print("-" * 40)
-    
-    status = os_instance.get_system_status()
-    print(f"Version: {status['version']}")
-    print(f"Uptime: {status['uptime_str']}")
-    print()
-    
-    for name, module in status["modules"].items():
-        icon = "✓" if module["status"] == "online" else "✗"
-        print(f"  [{icon}] {name}: {module['status']}")
-    
-    print()
-    print("Ready! Type 'help' for commands.")
-    print()
-    
-    # Interactive loop
-    while os_instance.running:
-        try:
-            user_input = input("Code-02> ").strip()
-            
-            if not user_input:
-                continue
-            
-            if user_input.lower() in ["exit", "quit", "bye"]:
-                break
-            
-            if user_input.lower() == "status":
-                status = os_instance.get_system_status()
-                print(json.dumps(status, indent=2))
-                continue
-            
-            if user_input.lower() == "help":
-                print("""
-Available commands:
-  <message>     - Chat with AI
-  status        - Show system status
-  exec <cmd>    - Execute command
-  install <pkg> - Install package
-  think <topic> - Deep thinking
-  history       - Show command history
-  exit          - Exit
-""")
-                continue
-            
-            if user_input.startswith("exec "):
-                cmd = user_input[5:]
-                result = await os_instance.execute_task(cmd)
-                print(f"Status: {result['status']}")
-                if result.get("stdout"):
-                    print(result["stdout"])
-                if result.get("stderr"):
-                    print(f"Error: {result['stderr']}")
-                continue
-            
-            if user_input.startswith("install "):
-                pkg = user_input[8:]
-                result = await os_instance.install_dependency(pkg)
-                print(f"Success: {result['success']}")
-                if result.get("error"):
-                    print(f"Error: {result['error']}")
-                continue
-            
-            if user_input.startswith("think "):
-                topic = user_input[6:]
-                result = await os_instance.think(topic)
-                print(result.get("reasoning", "Thinking unavailable"))
-                continue
-            
-            # Default: process with AI
-            result = await os_instance.process(user_input)
-            print(result.get("response", "No response"))
-            
-        except KeyboardInterrupt:
-            print("\nInterrupt received. Type 'exit' to quit.")
-        except Exception as e:
-            print(f"Error: {e}")
-    
-    await os_instance.shutdown()
+    try:
+        system = Code02System()
+        system.run()
+    except KeyboardInterrupt:
+        print("\n\nInterrupted. Goodbye!")
+    except Exception as e:
+        logger.error(f"Fatal error: {e}")
+        print(f"Fatal error: {e}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
