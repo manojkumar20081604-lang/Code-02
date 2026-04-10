@@ -1,0 +1,4 @@
+{"timestamp": "2026-04-06T20:11:42.409869", "input": "install flask", "decision": "install", "reasoning": "Routed to installer (confidence: 0.33)"}
+{"timestamp": "2026-04-06T20:11:42.409869", "input": "scan 192.168.1.1", "decision": "security_scan", "reasoning": "Routed to security (confidence: 0.33)"}
+{"timestamp": "2026-04-06T20:11:42.409869", "input": "ls -la", "decision": "command", "reasoning": "Routed to automation (confidence: 0.33)"}
+{"timestamp": "2026-04-06T20:11:42.409869", "input": "think about building a web app", "decision": "think", "reasoning": "Routed to brain (confidence: 0.23)"}

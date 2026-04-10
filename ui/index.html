@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CODE: 02 - Cognitive Autonomous AI</title>
+    <meta name="description" content="Next-generation AI assistant with cognitive capabilities" />
+    <style>
+      body {
+        margin: 0;
+        background: #0a0a0f;
+      }
+      #root {
+        min-height: 100vh;
+      }
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        color: #00d4ff;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 14px;
+      }
+      .loading::after {
+        content: 'INITIALIZING CODE: 02...';
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { opacity: 0.4; }
+        50% { opacity: 1; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" class="loading"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
