@@ -118,8 +118,8 @@ asyncio.run(test())
 "
         ;;
     v5|code02)
-        echo -e "${GREEN}[*] Starting CODE-02 v5.1 (human brain) ...${NC}"
-        echo "    Persona: CODE-02 wake=hey code02 (legacy hey ultron compat)"
+        echo -e "${GREEN}[*] Starting CODE-02 v5.2 O2 (human brain) ...${NC}"
+        echo "    Persona: CODE-02 wake=o2 (also hey o2, legacy hey code02/ultron compat)"
         echo "    Brain: ~/.code02/brain.db (legacy ~/.openjarvis compat) STM/LTM"
         echo "    API will be at http://127.0.0.1:8000 (CODE-02 API)"
         # check LM Studio
@@ -133,8 +133,8 @@ asyncio.run(test())
         echo ""
         echo "  Choose v5 mode:"
         echo "    v5-api      -> python ultron_api.py (CODE-02 API :8000) + python -m ultron.brain_mcp (8100)"
-        echo "    v5-voice    -> python voice_roundtrip.py \"hey code02 install htop\""
-        echo "    v5-e2e      -> python e2e_demo.py"
+        echo "    v5-voice    -> python voice_roundtrip.py \"o2 install htop\"  (also hey o2)"
+        echo "    v5-e2e      -> python e2e_demo.py  (o2 install htop)"
         echo "    v5-test     -> python red_team.py + python decepticon_audit.py + python ultron_kill.py"
         echo "    v5-brain    -> python ultron_self_audit.py --once --consolidate 5"
         echo ""
@@ -153,7 +153,7 @@ asyncio.run(test())
         cd CODE-02-v5-ultron && python3 red_team.py && python3 decepticon_audit.py && python3 ultron_kill.py 2>&1 | tail -n 20
         ;;
     v5-voice)
-        cd CODE-02-v5-ultron && python3 voice_roundtrip.py "hey code02 install htop"
+        cd CODE-02-v5-ultron && python3 voice_roundtrip.py "o2 install htop"
         ;;
     v5-e2e)
         cd CODE-02-v5-ultron && python3 e2e_demo.py
@@ -163,12 +163,12 @@ asyncio.run(test())
         echo ""
         echo "Commands:"
         echo "  start         Start Code-02 v4 in interactive mode (core/main.py)"
-        echo "  v5            Show CODE-02 v5.1 help (human brain, CODE-02 identity)"
+        echo "  v5            Show CODE-02 v5.2 O2 help (human brain, O2 wake)"
         echo "  v5-api        Start CODE-02 v5 API :8000 (ultron_api.py CODE-02)"
         echo "  v5-brain      Show brain stats ~/.code02/brain.db"
         echo "  v5-test       Run red_team + decepticon + kill (all PASS)"
-        echo "  v5-voice      Voice round-trip hey code02"
-        echo "  v5-e2e        E2E demo hey code02 install htop"
+        echo "  v5-voice      Voice round-trip o2 (hey o2)"
+        echo "  v5-e2e        E2E demo o2 install htop"
         echo "  daemon        Start as background daemon (v4)"
         echo "  install-deps  Install system dependencies"
         echo "  setup-ollama  Install and configure Ollama"
